@@ -1,0 +1,53 @@
+\subsection{Tenets}\label{sec:tenets}
+
+\paragraph{The Log as the central source of truth.}
+
+Sailors invented the log in the 16th century \cite{may1973historylog}. Surrounded by water, they needed a way to find out their ship's speed. They used a log - a real piece of wood - attached to a string and threw it into the water, tracking its speed relative to the ship over time and recording the measurements in a logbook. \cite{kakkar19log}.
+
+
+
+The idea? If you have a log, you can figure out what went wrong. You can figure out where you made mistakes. If the ship crashes, you know the last state it was in, thanks to the logs.
+
+This concept has creeped into almost everything we build.
+
+Airplanes have black boxes for the same purpose. Like every episode of Air Crash Investigation says - you’re lost without the blackbox. They’re more durable than traditional log books, since they have to survive the plane crash.
+
+
+
+\paragraph{Unbundling the database}
+
+
+
+
+
+
+\paragraph{Bitemporality}
+
+
+
+What's the T in EAVT? This fact came in as part of a transaction. When Transactions are first-class, they can carry arbitrary metdata such as what time did this fact come in? who sent it? from where? has it been audited? etc. [Hickey]
+-- problem: granularity broken. i'd like to attach metadata to individual facts, not necessarily only at the level of granulaity of a whole transaction. idea: attach meta to tx and to fact. such as valid as of time.
+Epochal Time.
+
+how does this differ from temporal databases?
+goal is different: auditability vs analytics
+
+Two axes of time, transaction time and valid time. \cite{snodgrass1992temporal}
+
+"state is induction in time, because if we know something at T, we also know it at time T+1" [Alvaro?]
+
+In Dedalus/Datalog: immutable(X)@next :- immutable(X).
+
+Filter tuples via: as-of (tt), as-at (tv)
+
+
+\paragraph{Immutability}
+Instead of thinking about the database as a "place" where to fetch data from and write data to,
+
+- pass whole DB as a value through app [Datomic][Re-frame]
+
+- value orientation instead of place orientation
+
+- enables "What-if" transactions
+
+- cheap thanks to efficient structural sharing [Oka96]

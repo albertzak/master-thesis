@@ -1,0 +1,80 @@
+\cleardoublepage
+\section{Related Work}\label{sec:related_work}
+
+
+\paragraph{MUMPS.} On the aspects of near real time state synchronization combined with RAD tooling, a notable mention is the \gls{MUMPS} \cite{bowie1979methods} from 1966. An extremely terse programming language and runtime system featuring built-in persistence mechanisms which replicate code and data across machines in near real time. The majority of hospitals in the United States continue to run an evolution of MUMPS today \cite{aller2018evolution}.
+
+\paragraph{RAD.} Scaling developer productivity as the team size goes $n \to 1$ on data-intensive near real time collaborative line-of-business applications goes back to the \gls{RAD} movement of the 1990s sparked by tools such as the Delphi suite \cite{mackay2000reconfiguring}, PowerBuilder \cite{zubeck1997implementing}, Lotus Notes \cite{zubeck1997implementing}, and FileMaker
+\cite{chen2010developing}.
+
+\paragraph{Firebase and Parse.} These services brought real time state synchronization to web and mobile applications starting in 2011. Firebase is a proprietary managed service operated by Google. Its data model is based on a global mutable structure in \gls{JSON} and allows only rather simplistic filtering and navigational queries. Parse was a similar real time Backend-as-a-Service based on MongoDB and Redis which was active from 2011 to 2017. \cite{wingerath2019real}
+
+\paragraph{Meteor.} This thesis is an evolution based on the author's experience running a \gls{SaaS} business built on the open source Meteor \cite{schmidt2014live} framework and the \gls{DDP} \cite{ddpspec} released in 2012. Meteor allows clients to transparently subscribe to the results of predefined MongoDB queries updating live over arbitrary durations. Synchronization is achieved by the server watching the operations log of the database (called "oplog tailing") \cite{wingerath2019real}, keeping track of the documents and queries of each connected client, and computing delta changes to send back to the client. See \autoref{tbl:dbcomparison} for a comparison of Meteor with other data management approaches.
+
+Clients cache the received documents in a local instance of MongoDB implemented in JavaScript (called Minimongo), enabling arbitrary local queries with no latency. Combined with a functional-reactive view library such as React to bind the management of a view's lifecycle with its data subscriptions, this setup gives the impression of data "just being here" on the client with almost no programmatic overhead.
+
+The major problem of Meteor is its absolute dependence on MongoDB and the ensuing lack of a relational data model, i.e. no joins and requiring to denormalize data, leading to incidental complexity and the $n+1$ query problem.
+
+\paragraph{Datomic.} Most of the design tenets for the project described in \autoref{sec:tenets} originate from the database Datomic \cite{hickey2012dbvalue} which was created by the author of the Clojure programming language in 2012. It is a monotemporal (\gls{tx} only; also called unitemporal) and immutable log of EAV facts, with first-class transactions reified as facts themselves.
+
+Instead of thinking of the database as a single \emph{place} to send queries to and receive responses from, Datomic separates its components as follows to achieve horizontal read scalability, turning the classical model of a database "inside out" \cite{kleppmann2017designing}:
+\begin{itemize}
+  \item There is a \emph{generic} stateful distributed storage layer, which may be backed by any pluggable implementation (SQL, Redis, Riak, Kafka, files, memory...). The storage layer keeps all data in the form of tuples and various indices as B+-trees \cite{hickey2019datomic}.
+  \item Application servers (called "peers") operate on a working set of tuples in memory. They perform queries themselves \emph{locally on their own copy of the data.} Tuples are cached locally as needed and are lazily loaded from the storage layer over the (local) network, where disk locality is considered irrelevant \cite{ananthanarayanan2011disk}. Reads do not need coordination. Yet consistency and caching are trivial because tuples are immutable. As put by the author: "perception does not require coordination \cite{hickey2012values}".
+  \item All write transactions -- represented as data structures -- go through a \emph{single instance} of a \emph{transactor}, which is the only component that may write to the storage backend. Because it is a single instance, it can impose a global order on all transactions. Conversely, the transactor is the bottleneck for write throughput, as well as a single point of failure for which a second instance should be operated in a hot failover configuration.
+\end{itemize}
+
+
+\paragraph{Juxt Crux.}
+
+\paragraph{Eva.}
+
+\paragraph{Datascript.}
+datascript: lacks: durability, history, idents
+
+\paragraph{Datsync.}
+
+\paragraph{Posh.}
+posh connects datascript db to re-frame: "reactive datascript queries"
+posh/q returns a "reaction" - an always-up-to-date computation based on the database"
+
+
+
+\paragraph{LogicBlox} \cite{aref2015design}
+all predicates are sets. predicates are either a function or a relation. EDB predicates = input to your program. IDB preds = computed by the program.
+
+\paragraph{Hyperfiddle.} \cite{getz18hyperfiddle}
+
+\paragraph{Eve.}
+eve, redux, re-frame, samza
+
+
+
+rxdb "RxDB ("A reactive database where you can subscribe to the result of a query")
+https://news.ycombinator.com/item?id=21353020"
+
+Supabase Realtime (same for postgres but way less approchable?) Built in Erlang/Elixir/Phoenix
+https://github.com/supabase/realtime
+
+datomic, eva, juxt crux, datascript
+datsync, posh, re-frame
+
+
+TODO research braid (nov 22)?
+
+TODO research mozilla mentat
+
+
+\begin{table}[]
+  \label{tbl:dbcomparison}
+  \caption{Comparison Meteor with other database and stream processing systems \cite{wingerathcase}}
+  \begin{tabular}{r|c|c|c|c|}
+    \cline{2-5}
+                                              & \textbf{DBMS}                                                & \textbf{\begin{tabular}[c]{@{}c@{}}Real-time\\ database\end{tabular}}            & \textbf{\begin{tabular}[c]{@{}c@{}}Data stream\\ management\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}Stream\\ processing\end{tabular}}     \\ \hline
+    \multicolumn{1}{|r|}{\textbf{data}}       & \multicolumn{2}{c|}{\begin{tabular}[c]{@{}c@{}}persistent\\ collections\end{tabular}}                                                           & \multicolumn{2}{c|}{\begin{tabular}[c]{@{}c@{}}persistent \& ephemeral\\ streams\end{tabular}}                                                       \\ \hline
+    \multicolumn{1}{|r|}{\textbf{processing}} & one-time                                                     & \begin{tabular}[c]{@{}c@{}}one-time \&\\ continuous\end{tabular}                 & \multicolumn{2}{c|}{continuous}                                                                                                                      \\ \hline
+    \multicolumn{1}{|r|}{\textbf{access}}     & random                                                       & \begin{tabular}[c]{@{}c@{}}random \&\\ sequential\end{tabular}                   & \multicolumn{2}{c|}{sequential}                                                                                                                      \\ \hline
+    \multicolumn{1}{|r|}{\textbf{streams}}    & \multicolumn{3}{c|}{structured}                                                                                                                                                                                             & \begin{tabular}[c]{@{}c@{}}structured \&\\ unstructured\end{tabular}     \\ \hline
+    \multicolumn{1}{l|}{}                     & \begin{tabular}[c]{@{}c@{}}PostgreSQL\\ MongoDB\end{tabular} & \begin{tabular}[c]{@{}c@{}}Firebase,\\ Meteor,\\ RethinkDB,\\ Parse\end{tabular} & \begin{tabular}[c]{@{}c@{}}Influx,\\ PipelineDB,\\ SQLStream\end{tabular} & \begin{tabular}[c]{@{}c@{}}Storm,\\ Samza,\\ Flink,\\ Spark\end{tabular} \\ \cline{2-5} 
+    \end{tabular}
+  \end{table}

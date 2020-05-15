@@ -1,0 +1,101 @@
+\section{Implementation}\label{sec:implementation}
+
+The following subsections describe the implementation of the design.
+
+\subsection{Functional core, stateful shell}
+
+A guiding principle is to push impure computation and state towards the edge of the system. In fact, all of the described core functionality is implemented as pure functions operating on plain unadorned immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients.
+
+
+\subsection{Data model}
+
+\begin{itemize}
+\item A \emph{fact} is represented as a vector: \lisp{[e a v tv]}
+\item A \emph{transition} is a fact with an indicator whether it is an assertion (\lisp{:+}) or retraction (\lisp{:-}) \lisp{[:+ e a v tv]}
+\item A \emph{transaction} is a list of transitions atomically applied at the same logical time. \lisp{[[:+ ...] [:- ...] [:+...]]}
+\item A \emph{commit} is a transaction with a tx timestamp: \lisp{[2020 [:+ ...] [:- ...] [:+...]]}
+\item The \emph{log} is an ordered list of commits. All changes over time to the database are fully described by the log.
+\item An \emph{index} is an associative nested structure 3 layers deep: {:avet {:name {"chu" {:person/1 2020}}}} (where's the bitemporality in the index?)
+\item The database additionally keeps a vector of four indices: EAVT, AVET, VAET, AEVT for efficient querying.
+\end{itemize}
+
+
+--
+
+should facts hace a (tx or tv ordered?) uuid so that client can cache facts by uuid,
+and request ranges of uuids?
+-- leaning towards nope, as likely only a perf benefit
+
+
+\subsection{Bitemporal index}
+
+TODO figure out
+
+ivtt vs tx?
+
+IVTT valid time trees \cite{nascimento1995ivtt}
+
+TX layered [Rubinstein?]
+
+
+\subsection{Pattern matching query engine}
+
+The query engine is implemented as a completely separate and optional library.
+
+\paragraph{Step 1: Filter the log by time}
+depending on the query's time modifier medatata
+(as-of, as-at)
+
+\paragraph{Step 2: Build a filtering sieve triple}
+
+The query clauses get transformed into a two element tuple, containing the sieve and a positional mapping back to the logic variable names.
+
+[?e :name "Company A"]
+
+; [[true #(= % :works-for) true] ["?p" nil "?e"]]
+; [[true #(= % :name) #(= % "MyPlace")] ["?p" nil "?e"]]
+
+
+\paragraph{Step 3: Decide index to use}
+\autoref{tbl:lvartoindex}
+The lvar that appears in each clause at the same position is the joining variable. This is a limitation, as a full query language should support arbitrary transitive joins.
+
+\begin{table}
+  \label{tbl:lvartoindex}
+  \caption{Mapping of joining variable position to query index \cite{rubin15aosadb}}
+  \begin{tabular}{|r|c|l|}
+    \hline
+    query clause & joining variable operates on & index to use \\ \hline
+    \lisp{[?e :a :v]} & entity & \lisp{:avet} \\ \hline
+    \lisp{[:e ?a :v]} & attribute & \lisp{:veat} \\ \hline
+    \lisp{[:e :a ?v]} & value & \lisp{:eavt} \\ \hline
+    \end{tabular}
+\end{table}
+
+\paragraph{Step 4: Run sieve function over filtered index}
+
+\paragraph{Step 5: Unification of result tuples with the query clause}
+
+
+
+\subsection{Distribution and replication}
+
+server offers publication: a fn taking optional client supplied parameters and returning a query data structure. may be arbitrarily timed.
+
+clients send request to subscribe to a publication, optionally giving parameters
+
+server runs publication function which may also perform authorization and gets a fully parameterized query returned.
+
+the query is then added to and adds it to
+
+server keeps all of a client's queries in memory.
+
+completely separate server side tuple dataset for each client.
+
+TODO: how to deregister clients?
+
+TODO should all subscriptions have a (ordered?) uuid?
+
+How to maintain sort in storage while novelty comes in? Cannot always reorder whenever a new fact appears. Google's BigTable Accumulates up to 64MB of novelty in memory. Current view= mem+storage. Occasionally integrates memory into storage, then releases memory. BUT creates whole copy of new flat file in stoage. we want to share previous structure. [Hickey/BigTable]
+
+We can keep durability guarantees even with Periodic sorting by immediately appending novelty to a durable, unordered log.

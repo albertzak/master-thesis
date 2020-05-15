@@ -1,0 +1,75 @@
+\subsection{Goals}
+
+a flexible \emph{data layer} for small to medium size internal business applications for distributed collaboration in near-realtime.
+out of the author's experience running a SaaS business designing, developing, and operating a
+why no there are many special purpose dbs, mostly for performance.
+but none optimized for "data just being there when you need it"
+
+with least amount of code. but still backed by relational guarantees (acid)
+
+needs different kind of db.
+needs reinvention of the whole data layer.
+
+
+
+To reduce some of the complexities in question, moseley and Marks recommend adopting functional and declarative programming constructs, along with a fully relational data model \cite{tarpit}.
+
+\paragraph{Streaming relational queries.}
+Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_rest}. What is needed for rich interactions is a different model of streaming queries for data in motion: What is "just there" is not the data, but the query — which is "instantiated in the network", and the data flows through the query. \autoref{lst:querying_data_in_motion} gives an example of a streaming query.
+
+\begin{lstlisting}[label={lst:querying_data_in_motion},morekeywords={email-source,contacts-source},caption=Querying data in motion \cite{alvaro2015isee}]
+($\Pi$ [:ip]
+   ($\bowtie$ ($\sigma$ (classifier email :spam)
+         email-source)
+       contacts-source))
+\end{lstlisting}
+
+
+
+
+\paragraph{Notion of memory.}
+with strict auditability (log+queryable past)
+free auditing of everything, time travel
+"save everything", query later
+6NF EAV "Event Sourcing" Data Model w/ Explicit Time and Memory: "History of structured Facts"
+
+\paragraph{Transactional guarantees.}
+Transactions (ACID)
+
+
+\paragraph{Adaptivity and dynamism.}
+schemaless
+
+
+\paragraph{Distribution.}
+The handling of data between clients and servers should be as declarative as possible: Clients declare what data they are interested in, and the infrastrucutre takes care of fetching, caching, handling updates, unsubscribe
+
+Isomorphic + Homoiconic: Single Language: ClojureScript on Lumo/Browser
+
+
+
+
+\subsection{Non-goals}\label{sec:nongoals}
+
+
+\paragraph{}
+very hard with meteor-like pubsub: what do do when roles change?
+this is to be solved via \gls{CQRS}: server-side callable "actions" that run selected mutations
+
+conflict resolution / concurrent editing [see future work]
+Automated conflict resolution allowing safe concurrent editing is not part of the design at this point.
+
+excision/privacy
+
+latency compensation/optimistic updates
+
+\paragraph{Efficiency.}
+No attention is paid to the efficiency of compute and memory usage. Tradeoffs are almost always made in favor of clarity of the mapping between conceptual model and implementation of the proof of concept. The only major optimization is the design of the triple index, leastwise it doubles as the simplest possible way to access arbitrary data without the overhead of parsing and executing a query.
+
+Custom indexing strategies, e.g. ways to maintain a phonetic index to query for people's names, do not need to be part of the database design, because the triple indexing scheme is general enough to allow arbitrary access to the data in a manner that is efficient enough without having to declare indices upfront.
+
+\paragraph{First class bitemporality.}
+Another non-goal is the efficiency, primacy, and expressive power of the provided bitemporal affordances. A vast amount of previous work exists on relatively complex attempts to add efficient bitemporal semantics to relational databases \cite{snodgrass1996adding,jensen1999temporal,kulkarni2012temporal} notably for use in bitemporal constraints \cite{doucet1997using} or within complex queries, and of bitemporality as a first class concept in production rule systems \cite{aref2015design}. Bitemporality in the described system is only secondary. Access paths are optimized for the most recent view of the data, while bitemporality is meant to be used for infrequent auditing purposes. There is no bitemporal index, consequently issuing queries with temporal modifiers causes a sequential scan of the log.
+
+\paragraph{Standard protocols.}
+Lastly, the design explicitly avoids compliance with existing proliferated standards around the handling of data such as SQL, \gls{XML}, \gls{JSON}, \gls{REST}, etc. to instead allow quick exploration into different paradigms unburdened by past decisions.

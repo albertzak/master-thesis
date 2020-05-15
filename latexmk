@@ -1,0 +1,6 @@
+#!/bin/sh
+exec docker run --rm -i \
+  -v "$PWD":/data \
+  -w "/data" \
+  "$TEX_IMAGE" \
+  latexmk "$@"

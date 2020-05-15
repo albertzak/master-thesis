@@ -1,0 +1,46 @@
+\cleardoublepage
+\section{Future Work}
+
+% nice to have features
+per-field specifiable tradeoff of C/A (referecne to [emerick] in problem section)
+built-in models of conflict resolution / concurrent editing
+
+TODO think about how \gls{CRDT} may integrate with eav history?
+
+abelson: "use logic to express what is true" "use logic to check whether something is true" "use logic to find out what is true" \cite{sicp}
+
+minikanren \cite{byrd2010relational}
+
+
+
+
+[alvaro] "state is induction in time" (see intro) dedalus \cite{alvaro2010dedalus} reifies time: three temoporal extenstions to datalog:
+\gls{CALM} \cite{alvaro2011consistency}
+
+1. deductive (== plain datalog, now now now semantics) p(A,B) :- q(A,B).
+2. inductive rule (contraint across "next" timestep) p(A,B)@next :- q(A,B).
+3. async tile (constraint across arbitrary timesteps) p(A,B)@async :- q(A,B).
+
+dedalus: also allows us to characterize relationships between states.
+key relationships: atomicity, mutual exclusion, sequentiality.
+@next is powerful! can say:
+- "these two facts have to occur together or not at all" = atomicity
+- "these two facts can occur one or the other, but not both" = mutual exclusion
+- "this thing happens, then this thing happens" = sequentiality
+
+\paragraph{Incremental maintenance.}
+
+\cite{green2013datalog}
+timely dataflow \cite{murray2013naiad}
+The Differential dataflow \cite{mcsherry2013differential}
+
+3df [reactive datalog for datomic, goebel] \cite{gobel2019optimising}
+
+
+\paragraph{Data as code.}
+Do we need version control?
+Hyperfiddle \cite{getz18hyperfiddle}
+
+
+\cleardoublepage
+\section{Conclusion}

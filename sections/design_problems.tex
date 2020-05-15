@@ -1,0 +1,69 @@
+\subsection{Problems}
+With the shift to data-intensive \gls{SPA} (clients act as limited database peers)
+Data-intensive applications
+Clients become limited peers.
+Requirements of real time collaboration, declarative security, auditability of changes, evolution of the schema, and analytics push the limit of established request-response mechanisms.
+
+
+\paragraph{\gls{SQL}.}
+Despite the widespread use of SQL, it is not, in any version, an accurate reflection of the relational model \cite{codd1990relational} \cite{tarpit}.
+Modeling domains in common \gls{RDBMS} requires distinguishing between entity and relationship \cite{chen1976entity}. A system in which choosing the structure for the data involves setting up "routes" between data instances (such as from a particular employee to a particular department) is access path dependent. A pure relational systems would need no problematic distinction between entity and relationship \cite{tarpit}.
+
+Traditional RDBMSs enforce a structural rigidity of fitting data into "tables", "rows", and "columns", entailing a lack of flexibility in dealing with sparse data, irregular data, hierarchies, or multi-valued attributes \cite{hickey2012dbvalue}. Finally, SQL as a query language when embedded into the application's main programming language is usually treated as a second class citizen by resorting to concatenation of strings with a thin layer of sanitization. (Microsoft's LINQ \cite{meijer2006linq} is a notable exception.) Features such as materialized views are cumbersome to use because the language lacks powerful means of abstraction and composition \cite{sicp} which would enable recursively composing complex queries out of smaller queries.
+
+\paragraph{Object-relational mismatch.}
+\gls{ORM} of tuples from the database onto whichever data types are available in the backend programming languages, and increasingly also to the language in the front end in \gls{SPA}, as well as the choice of appropriate communication interfaces between at least three layers pose additional considerations.
+
+proliferation of types
+
+
+\paragraph{Analytics vs. transactions.}
+Calderwood: Avoid divide of OLTP/OLAP (perform analytics on live data)
+
+\paragraph{Time.}
+Temporal databases are commonly optimized for analytics performance over large numeric datasets, e.g. sensor readings over time. Temporal extensions to SQL \cite{kulkarni2012temporal} are convoluted and do not address the fundamental problem at hand, which is that typical mutable-state systems obscure the sequence of events that brought the world into the current state.
+
+Monotemporality (i.e. )
+
+
+What's the customer's actual intent? Obscures the story, what happened to bring us to the current state? How to audit that sequence of events for correctness/security/compliance?
+
+
+notion of database as "memory" requires bitemporality.
+
+
+"Information and Time" Memory and records, remember and keep, auditing
+
+place orientation
+
+
+\paragraph{Distribution.}
+Thinking that data resides "over there" on a remote server breeds a "fear of round trips" and causes developers to accumulate incidental complexity in the form of performance optimizations related to caching \cite{hickey2012dbvalue}.
+
+Yet, one cannot disavow the fundamental complexities of distributed systems: Network failures (latency, disconnection, offline context), consistency and availability choices taken by underlying technology which are not made explicit, and how different representations of data influence and determine what is and is not possible in terms of concurrent activity by different actors \cite{emerick2014api}.
+
+\paragraph{Imperative fetching.}
+Performing data loads via classic request-response semantics is not expressive enough because the act of fetching is made explicit and requires imperative calls to various endpoints. A developer of a \gls{SPA} with a \gls{REST} backend must decide along which boundaries to split the data endpoints. In traditional RESTful style, each \emph{resource} dictates its own endpoint with its own \gls{CRUD} actions. This approach places the burden of orchestrating a decomposed rich interaction on the clients \cite{calderwood15cqrs}, leading to the $n+1$ query problem when performing client-side joins, and an over-fetching of data which is not needed to display but happens to be provided by the endpoint.
+
+At the other extreme, there exists one distinct endpoint providing the exact required data for each screen (notwithstanding that the concept of a \emph{screen} is vague in SPAs) which collects, filters, and joins the data on the server before serializing it as one tree, and sending it back to the client. This style causes incidental complexity through a proliferation of endpoints and ad-hoc schemata.
+
+A middle-ground mixture of both styles is common, muddling the architectural waters and bringing both disadvantages together with even more code bloat. In any case, the act of fetching the data must be initiated by the client in an imperative way instead of data just being "here" in the client's view layer when needed.
+
+
+\paragraph{Propagation of updates.}
+The traditional understanding of queries for data at rest as in \autoref{lst:querying_data_at_rest} is that data exists at the database in one place, and queries are passed over there, usually in the form of SQL strings, and unroll themselves into a dataflow tree of operators, pulling data up the tree when they reach the leaves \cite{alvaro2015isee}.
+
+\begin{lstlisting}[label={lst:querying_data_at_rest},morekeywords={employees,departments},caption=Querying data at rest \cite{alvaro2015isee}]
+($\Pi$ [:name :department]
+   ($\bowtie$ ($\sigma$ :name "Scott" employees)
+      departments))
+\end{lstlisting}
+
+When the underlying data changes, queries do not get re-run automatically and clients are left looking at stale data.
+
+
+
+"Perception and Reaction" We'd like reactive systems that don't poll. consistent
+
+
+"Consistency and Scale" - we need a stable basis, same query, same results

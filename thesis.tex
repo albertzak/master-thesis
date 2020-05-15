@@ -1,0 +1,161 @@
+\documentclass[12pt,a4paper,oneside]{article}
+
+\usepackage[pdftex,
+            pdfauthor={Albert Zak},
+            pdftitle={Reactively Querying an Immutable Log of Relational Facts.
+            Design and Implementation of a Bitemporal EAV Database with a Subscription Query Language.},
+            pdfsubject={Master's Thesis},
+            hidelinks,
+            driverfallback=hypertex]{hyperref}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% \usepackage{arialu}
+% \renewcommand{\familydefault}{\sfdefault}
+% \normalfont
+\renewcommand{\rmdefault}{phv} % Arial
+\renewcommand{\sfdefault}{phv} % Arial
+
+\usepackage{microtype}
+\usepackage{geometry}
+\usepackage{bookmark}
+\usepackage{listings}
+\usepackage[inline]{enumitem}
+\usepackage{subcaption}
+\usepackage{tabularx}
+\usepackage{cleveref}
+\usepackage{multirow}
+\usepackage{floatrow, makecell}
+\usepackage{hhline}
+\usepackage{boldline}
+\usepackage{algpseudocode}
+\usepackage{stackengine}
+\usepackage{tikz}
+\usetikzlibrary{trees,arrows,fit,positioning,shapes.geometric,shadows}
+\PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
+\usepackage{xcolor-solarized}
+\usepackage{gitdags}
+\usepackage[singlespacing]{setspace}
+\usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
+\usepackage{fancyhdr}
+\usepackage{hyphenat}
+\hyphenation{name-space}
+\usepackage{forest}
+\forestset{
+  dir tree/.style={
+    for tree={
+      parent anchor=south west,
+      child anchor=west,
+      anchor=mid west,
+      inner ysep=-3pt,
+      grow'=0,
+      align=left,
+      edge path={
+        \noexpand\path [draw, very thin, lightgray, \forestoption{edge}] (!u.parent anchor) ++(1em,0) |- (.child anchor)\forestoption{edge label};
+      },
+      font=\ttfamily,
+      if n children=0{}{
+        delay={
+          prepend={[,phantom, calign with current]}
+        }
+      },
+      fit=band,
+      before computing xy={
+        l=2em
+      }
+    },
+  }
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\makeglossaries{}
+\input{glossary}
+
+\lstset{
+  language=lisp,
+  numbers=left,
+  numberstyle=\small\color{lightgray},
+  basicstyle=\ttfamily,
+  captionpos=b,
+  frame=tb,
+  extendedchars=true,
+  firstnumber=0,
+  stepnumber=5,
+  xtopmargin=5pt,
+  xbottommargin=5pt,
+  xleftmargin=17pt,
+  framextopmargin=5pt,
+  framexleftmargin=17pt,
+  framexrightmargin=5pt,
+  framexbottommargin=5pt,
+  inputencoding=utf8,
+  mathescape=true
+}
+% Hide number in first line of code listings
+\makeatletter
+\def\lst@PlaceNumber{\ifnum\value{lstnumber}=0\else
+  \rlap{\normalfont\kern\linewidth \kern\lst@numbersep\lst@numberstyle{\thelstnumber}}\fi}
+\makeatother
+
+\newcommand{\lisp}[1]{\lstinline$#1$}
+
+\pdfpageheight=297mm
+\pdfpagewidth=210mm
+\geometry{a4paper, left=30mm, right=25mm, top=30mm, bottom=30mm}
+
+\begin{document}
+
+\frenchspacing
+
+\pagestyle{empty}
+\input{sections/preamble}
+
+\newpage
+\pagestyle{fancy}
+\pagenumbering{roman}
+\include{sections/abstract}
+
+
+\section*{Key Terms}
+EAV \\
+Database \\
+Bitemporality \\
+Immutability \\
+Datalog \\
+Lisp \\
+
+\cleardoublepage
+
+\renewcommand{\glsnamefont}[1]{\textbf{#1}}
+\doublespacing
+\printglossary[title=List of Abbreviations,nonumberlist,type=\acronymtype]
+\singlespacing
+
+\cleardoublepage
+
+
+\tableofcontents{}
+
+\cleardoublepage
+
+\pagenumbering{arabic}
+
+\include{sections/introduction}
+\include{sections/state_of_the_art}
+\include{sections/related_work}
+\include{sections/design}
+\include{sections/implementation}
+\include{sections/discussion}
+\include{sections/conclusion}
+
+\include{lists}
+
+\bibliography{lit}
+\bibliographystyle{alpha}
+
+\end{document}

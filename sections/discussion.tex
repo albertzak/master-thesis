@@ -1,0 +1,56 @@
+\cleardoublepage
+\section{Discussion}\label{sec:discussion}
+
+The following two sections qualitatively review the contribution with respect to the stated goals, and expose limitations of the current implementation as well as discuss flaws inherent to the design.
+
+\subsection{Advantages}
+
+minimal loc shows expressive power of language
+
+pluggable transport
+
+free indexing
+
+immutability and db-as-value
+
+\paragraph{Flexible data model.} Representing data as fully-normalized fact triples allows
+In a traditional, row-oriented data model, modeling such data will lead to very wide, sparse tuples. Attribute-oriented data models can represent such data much more efficiently, and materialize only necessary attributes, at the cost of frequent multi-way joins across relations of potentially highly varying selectivities. \cite{gobel2019optimising}
+
+
+\subsection{Limitations}
+
+
+
+Since the persistence of data is fundamental to any application, changes to the data layer
+Both cases have a dynamic that favours those building new systems as opposed to those that maintain or steward large existing systems.
+
+-- determining if fact was superseded needs upfront specification of cardinality for field.
+-- TODO does it make sense to default to cardinality one?
+set vs multiset semantics -- leaning towards set on insertion, multiset on querying
+
+
+
+framework vs library
+
+composition of queries
+
+temporal and general constraints
+
+epochs/excision/selective deletion for compliance reasons
+"The main transaction log contains only hashes and is immutable. All document content is stored in a dedicated document log that can be evicted by compaction." [crux]
+
+
+persistence to disk
+
+full unsynchronized read replication ("perception does not require coordination" [hickey])
+
+split out transactor with possibility of primary-backup replication
+
+problem: back dated changes. should we allow future dated changes? -- leaning towards no? or ignore? or cut off at "now" by default? we just defer answering this question as not a core concern of this poc
+
+
+fully lazy datastructure allows transaprent access of past/superseded facts
+
+real bitemporal query language (mix timelines in single query)
+
+Second System Effect \cite{brooks1995mythical}

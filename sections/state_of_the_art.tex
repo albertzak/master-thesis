@@ -1,0 +1,33 @@
+\cleardoublepage
+\subsection{State of the art}\label{sec:sota}
+
+This section gives and overview of the data layer paradigms
+
+\paragraph{\gls{EAV}}
+6nf / rdf / triplestores
+
+
+\paragraph{Event sourcing.}
+\gls{CQRS}
+often in conjunction with \gls{DDD} \cite{evans2004domain}
+
+
+\paragraph{Bitemporality}
+While uni- or monotemporal databases allow querying along the transactional sequence of historic database states
+
+support for bitemporality adds another separate axis
+
+\gls{tv} \gls{tt}
+
+When extending EAV databases with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events.
+
+\paragraph{Functional-reactive programming.}
+
+database as a value \cite{hickey2012dbvalue}
+live queries
+
+Continuing on to span the \gls{FRP} paradigm from the server towards the client,
+\cite{reynders2014multi}
+
+When constructing the view layer out of pure functions The view as a pure function of state $v=f(s)$
+Each component specifies what data it needs, composing components needn't know inner workings -- but bundled with graphql

@@ -1,0 +1,34 @@
+{
+  "files.exclude": {
+    "**/*.aux": true,
+    "*.acn": true,
+    "*.alg": true,
+    "*.acr": true,
+    "*.bbl": true,
+    "*.blg": true,
+    "*.glg": true,
+    "*.glo": true,
+    "*.gls": true,
+    "*.ist": true,
+    "*.lof": true,
+    "*.lol": true,
+    "*.lot": true,
+    "*.fdb_latexmk": true,
+    "*.log": true,
+    "*.toc": true,
+    "*.fls": true,
+    "*.synctex.gz": true,
+    "chktex": true,
+    "latexmk": true,
+    "*(busy)": true,
+    "LICENSE": true
+  },
+  "spellright.language": [
+    "en"
+  ],
+  "spellright.documentTypes": [
+    "markdown",
+    "latex",
+    "plaintext"
+  ]
+}
