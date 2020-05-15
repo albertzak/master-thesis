@@ -15,7 +15,7 @@ needs reinvention of the whole data layer.
 To reduce some of the complexities in question, moseley and Marks recommend adopting functional and declarative programming constructs, along with a fully relational data model \cite{tarpit}.
 
 \paragraph{Streaming relational queries.}
-Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_rest}. What is needed for rich interactions is a different model of streaming queries for data in motion: What is "just there" is not the data, but the query — which is "instantiated in the network", and the data flows through the query. \autoref{lst:querying_data_in_motion} gives an example of a streaming query.
+Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_rest}. What is needed for rich interactions is a different model of streaming queries for data in motion: What is "just there" is not the data, but the query — which is \emph{instantiated in the network}, and the data flows through the query instead of the other way around. \autoref{lst:querying_data_in_motion} gives an example of a streaming query.
 
 \begin{lstlisting}[label={lst:querying_data_in_motion},morekeywords={email-source,contacts-source},caption=Querying data in motion \cite{alvaro2015isee}]
 ($\Pi$ [:ip]

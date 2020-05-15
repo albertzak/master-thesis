@@ -1,17 +1,19 @@
 \cleardoublepage
 \section{Future Work}
 
-% nice to have features
-per-field specifiable tradeoff of C/A (referecne to [emerick] in problem section)
-built-in models of conflict resolution / concurrent editing
 
-TODO think about how \gls{CRDT} may integrate with eav history?
+\paragraph{Safe concurrent editing.}
+A distributed system expects connection loss and simultaneous conflicting edits. It should be possible to define a schema that selects one of many built-in conflict resolution strategies specific to the domain requirements of each attribute. A per-field specifiable tradeoff as dictated by the \gls{cap} theorem of C and A must propagate to the clients and dictate the possible operations on the data item in question given the current network conditions \cite{emerick2014api}. Recently discovered concepts such as the \gls{CRDT} and \gls{OT} appear to provide composable consistency primitives for robust replication \cite{weilbach2015replikativ, weilbach2016decoupling}.
 
-abelson: "use logic to express what is true" "use logic to check whether something is true" "use logic to find out what is true" \cite{sicp}
+The Braid protocol \cite{braid} is an in-progress draft of a proposed \gls{IETF} standard to add history, editing, and subscription semantics to HTTP resources. It aims to standardize the representation and synchronization of arbitrary web application state. Braid can allow simultaneous editing of the same resource by different clients and servers and can guarantee a consistent resulting state via selectable \emph{merge types} implementing CRDTs and OTs.
+
+
+\paragraph{(Temporal) constraints.}
+
+
+"use logic to express what is true, use logic to check whether something is true, use logic to find out what is true" \cite{sicp}
 
 minikanren \cite{byrd2010relational}
-
-
 
 
 [alvaro] "state is induction in time" (see intro) dedalus \cite{alvaro2010dedalus} reifies time: three temoporal extenstions to datalog:
@@ -27,6 +29,7 @@ key relationships: atomicity, mutual exclusion, sequentiality.
 - "these two facts have to occur together or not at all" = atomicity
 - "these two facts can occur one or the other, but not both" = mutual exclusion
 - "this thing happens, then this thing happens" = sequentiality
+
 
 \paragraph{Incremental maintenance.}
 

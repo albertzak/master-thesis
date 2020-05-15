@@ -74,6 +74,10 @@ The lvar that appears in each clause at the same position is the joining variabl
 
 \paragraph{Step 4: Run sieve function over filtered index}
 
+According to the query design goals, the order of the query clauses have no semantic meaning, yet there is an effect on query evaluation performance: when the most restricting clauses are placed at the beginning, they are processed first and immediately reduce the cardinality of the set of potential results which the next clauses have to filter. Automatically optimizing clause order would require estimating the cardinality of the resulting sets, which is a complex undertaking and is thus omitted from this proof-of-concept implementation \cite{neumann2011characteristic, malik2007black}.
+
+
+
 \paragraph{Step 5: Unification of result tuples with the query clause}
 
 

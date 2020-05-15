@@ -2,10 +2,11 @@
 \section{Related Work}\label{sec:related_work}
 
 
-\paragraph{MUMPS.} On the aspects of near real time state synchronization combined with RAD tooling, a notable mention is the \gls{MUMPS} \cite{bowie1979methods} from 1966. An extremely terse programming language and runtime system featuring built-in persistence mechanisms which replicate code and data across machines in near real time. The majority of hospitals in the United States continue to run an evolution of MUMPS today \cite{aller2018evolution}.
 
-\paragraph{RAD.} Scaling developer productivity as the team size goes $n \to 1$ on data-intensive near real time collaborative line-of-business applications goes back to the \gls{RAD} movement of the 1990s sparked by tools such as the Delphi suite \cite{mackay2000reconfiguring}, PowerBuilder \cite{zubeck1997implementing}, Lotus Notes \cite{zubeck1997implementing}, and FileMaker
+\paragraph{\gls{RAD}.} Scaling developer productivity as the team size goes $n \to 1$ on data-intensive near real time collaborative line-of-business applications goes back to the \gls{RAD} movement of the 1990s sparked by tools such as the Delphi suite \cite{mackay2000reconfiguring}, PowerBuilder \cite{zubeck1997implementing}, Lotus Notes \cite{zubeck1997implementing}, and FileMaker
 \cite{chen2010developing}.
+
+\paragraph{MUMPS.} On the aspects of near real time state synchronization combined with RAD tooling, a notable mention is the \gls{MUMPS} \cite{bowie1979methods} from 1966. An extremely terse programming language combined with a runtime system featuring built-in persistence mechanisms. This "global database" is a subscripted array which replicates \emph{code and data} across machines in near real time. The majority of hospitals in the United States continue to run their daily operational workloads on various evolutions of MUMPS systems today \cite{aller2018evolution}.
 
 \paragraph{Firebase and Parse.} These services brought real time state synchronization to web and mobile applications starting in 2011. Firebase is a proprietary managed service operated by Google. Its data model is based on a global mutable structure in \gls{JSON} and allows only rather simplistic filtering and navigational queries. Parse was a similar real time Backend-as-a-Service based on MongoDB and Redis which was active from 2011 to 2017. \cite{wingerath2019real}
 
@@ -15,55 +16,7 @@ Clients cache the received documents in a local instance of MongoDB implemented 
 
 The major problem of Meteor is its absolute dependence on MongoDB and the ensuing lack of a relational data model, i.e. no joins and requiring to denormalize data, leading to incidental complexity and the $n+1$ query problem.
 
-\paragraph{Datomic.} Most of the design tenets for the project described in \autoref{sec:tenets} originate from the database Datomic \cite{hickey2012dbvalue} which was created by the author of the Clojure programming language in 2012. It is a monotemporal (\gls{tx} only; also called unitemporal) and immutable log of EAV facts, with first-class transactions reified as facts themselves.
-
-Instead of thinking of the database as a single \emph{place} to send queries to and receive responses from, Datomic separates its components as follows to achieve horizontal read scalability, turning the classical model of a database "inside out" \cite{kleppmann2017designing}:
-\begin{itemize}
-  \item There is a \emph{generic} stateful distributed storage layer, which may be backed by any pluggable implementation (SQL, Redis, Riak, Kafka, files, memory...). The storage layer keeps all data in the form of tuples and various indices as B+-trees \cite{hickey2019datomic}.
-  \item Application servers (called "peers") operate on a working set of tuples in memory. They perform queries themselves \emph{locally on their own copy of the data.} Tuples are cached locally as needed and are lazily loaded from the storage layer over the (local) network, where disk locality is considered irrelevant \cite{ananthanarayanan2011disk}. Reads do not need coordination. Yet consistency and caching are trivial because tuples are immutable. As put by the author: "perception does not require coordination \cite{hickey2012values}".
-  \item All write transactions -- represented as data structures -- go through a \emph{single instance} of a \emph{transactor}, which is the only component that may write to the storage backend. Because it is a single instance, it can impose a global order on all transactions. Conversely, the transactor is the bottleneck for write throughput, as well as a single point of failure for which a second instance should be operated in a hot failover configuration.
-\end{itemize}
-
-
-\paragraph{Juxt Crux.}
-
-\paragraph{Eva.}
-
-\paragraph{Datascript.}
-datascript: lacks: durability, history, idents
-
-\paragraph{Datsync.}
-
-\paragraph{Posh.}
-posh connects datascript db to re-frame: "reactive datascript queries"
-posh/q returns a "reaction" - an always-up-to-date computation based on the database"
-
-
-
-\paragraph{LogicBlox} \cite{aref2015design}
-all predicates are sets. predicates are either a function or a relation. EDB predicates = input to your program. IDB preds = computed by the program.
-
-\paragraph{Hyperfiddle.} \cite{getz18hyperfiddle}
-
-\paragraph{Eve.}
-eve, redux, re-frame, samza
-
-
-
-rxdb "RxDB ("A reactive database where you can subscribe to the result of a query")
-https://news.ycombinator.com/item?id=21353020"
-
-Supabase Realtime (same for postgres but way less approchable?) Built in Erlang/Elixir/Phoenix
-https://github.com/supabase/realtime
-
-datomic, eva, juxt crux, datascript
-datsync, posh, re-frame
-
-
-TODO research braid (nov 22)?
-
-TODO research mozilla mentat
-
+Other databases which allow subscribing to the result set of a query include RxDB for JavaScript \cite{wingerath2019real}, Supabase which is built in Erlang/Elixir and adds query-subscription capabilities to Postgres \cite{supabase}.
 
 \begin{table}[]
   \label{tbl:dbcomparison}
@@ -78,3 +31,33 @@ TODO research mozilla mentat
     \multicolumn{1}{l|}{}                     & \begin{tabular}[c]{@{}c@{}}PostgreSQL\\ MongoDB\end{tabular} & \begin{tabular}[c]{@{}c@{}}Firebase,\\ Meteor,\\ RethinkDB,\\ Parse\end{tabular} & \begin{tabular}[c]{@{}c@{}}Influx,\\ PipelineDB,\\ SQLStream\end{tabular} & \begin{tabular}[c]{@{}c@{}}Storm,\\ Samza,\\ Flink,\\ Spark\end{tabular} \\ \cline{2-5} 
     \end{tabular}
   \end{table}
+
+
+
+\paragraph{Datomic.} Most of the design tenets for the project described in \autoref{sec:tenets} originate from the database Datomic \cite{hickey2012dbvalue} which was created by the author of the Clojure programming language in 2012. Its data model is a monotemporal (transaction time \gls{tx} only) and immutable log of assertions and retractions of EAV facts, with first-class transactions being reified as regular queryable facts themselves. Datomic requires a minimal schema to be specified upfront.
+
+Instead of thinking of the database as a single \emph{place} to send queries to and receive tuples from, Datomic separates its components as follows to achieve horizontal read scalability, turning the classical model of a database "inside out" \cite{kleppmann2017designing}:
+\begin{itemize}
+  \item There is a \emph{generic} stateful distributed storage layer, which may be backed by any pluggable implementation (SQL, Redis, Riak, Kafka, files, memory...). The storage layer keeps all data in the form of tuples and various indices. \cite{hickey2019datomic}.
+  \item Application servers (called "peers") operate on a working set of tuples in memory. They perform queries themselves \emph{locally on their own copy of the data.} Tuples are cached locally as needed and are lazily loaded from the storage layer over the (local) network, where disk locality is considered irrelevant \cite{ananthanarayanan2011disk}. As put by the author: "perception does not require coordination \cite{hickey2012values}", yet consistency and caching are trivial because tuples are immutable.
+  \item All write transactions -- represented as data structures -- go through a \emph{single} instance of the \emph{transactor} component, which is the only part of the system that may write to the storage backend. Because it is one single threaded instance, it can impose a global order on all incoming transactions. Conversely, the transactor is the bottleneck for write throughput, as well as a single point of failure for which a second instance should be operated in a hot failover configuration. Peers can place first-class functions into the database, and call them as part of a transaction to enforce arbitrary data invariants \cite{datomicdocs}.
+\end{itemize}
+
+
+\paragraph{Juxt Crux.} Rooted in the same core principles as Datomic but having taken some different architectural choices, Juxt Crux is an efficient \emph{bitemporal} schemaless unbundled document database. For a detailed comparison with Datomic, see \cite{juxtcrux}.
+
+\paragraph{Datascript.} Similarly inspired by Datomic, DataScript \cite{prokopov15datascript} is an immutable schemaless in-memory EAV store. It lacks notion of time because it is designed to manage frequently changing client-side state of a \gls{SPA} within the browser for the lifetime of a session, using limited memory.
+
+Several attempts exist to bridge the gap between a Datomic-like database on the server and a DataScript instance on the client used simultaneously for client-only view state as well as for caching tuples from the server \cite{small16datscript}; as well as the gap between that database and the view layer \cite{parker15posh,krivosheev19reposh}.
+
+Mozilla Mentat \cite{mozillamentat} was an attempt at a performant embeddable implementation in Rust of a combination of ideas from Datomic, DataScript, and SQLite.
+
+Eva \cite{eva} is an open source monotemporal EAV database very similar to and compatible with the \gls{API} of Datomic, though the project appears to be abandoned in a feature-complete "alpha" quality stage.
+
+\paragraph{LogicBlox.} A notable proprietary commercial RAD self-serve database system with an integrated programming language based on Datalog, LogicBlox similarly aims to reduce incidental complexity of developing line-of-business applications with a focus on probabilistic and predictive analytics of large business data sets. Its developers have contributed a novel efficient algorithm for incremental view maintenance for Datalog systems \cite{aref2015design}.
+
+
+\paragraph{Hyperfiddle.} Built on Datomic, \cite{getz18hyperfiddle}
+
+
+\paragraph{Eve.} An ambitious but ultimately abandoned attempt to reinvent programming for "humans first", Eve \cite{eve} was a combination of development environment, database, and a novel relational and reactive programming language where e.g. order has no meaning.

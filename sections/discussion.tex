@@ -19,9 +19,11 @@ In a traditional, row-oriented data model, modeling such data will lead to very 
 
 \subsection{Limitations}
 
+negation
 
+Features such as combining multiple data sources in one query, simpler means to abstract and compose query fragments (called "rules" in Datomic), pull expressions,
 
-Since the persistence of data is fundamental to any application, changes to the data layer
+Since the persistence of data is fundamental to any application, changes to the data layer.
 Both cases have a dynamic that favours those building new systems as opposed to those that maintain or steward large existing systems.
 
 -- determining if fact was superseded needs upfront specification of cardinality for field.
@@ -54,3 +56,5 @@ fully lazy datastructure allows transaprent access of past/superseded facts
 real bitemporal query language (mix timelines in single query)
 
 Second System Effect \cite{brooks1995mythical}
+
+\paragraph{Open vs. closed system.} Incidental complexity within a closed system such as the one described in this work can be managed to stay at a minimal level because any outside components the system is interacting with is forced to adapt to the system's way. However, users of such a system eventually want to connect it to other things. Inevitably, doing so \emph{imports} some of the incidental complexities of those systems. It remains to be seen if we can build open systems without importing accidental complexity \cite{moffat16eve}.
