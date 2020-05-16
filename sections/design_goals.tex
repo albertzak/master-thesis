@@ -49,22 +49,11 @@ Isomorphic + Homoiconic: Single Language: ClojureScript on Lumo/Browser
 
 
 
-\subsection{Non-goals}\label{sec:nongoals}
+`'\subsection{Non-goals}\label{sec:nongoals}
 
-
-\paragraph{}
-very hard with meteor-like pubsub: what do do when roles change?
-this is to be solved via \gls{CQRS}: server-side callable "actions" that run selected mutations
-
-conflict resolution / concurrent editing [see future work]
-Automated conflict resolution allowing safe concurrent editing is not part of the design at this point.
-
-excision/privacy
-
-latency compensation/optimistic updates
 
 \paragraph{Efficiency.}
-No attention is paid to the efficiency of compute and memory usage. Tradeoffs are almost always made in favor of clarity of the mapping between conceptual model and implementation of the proof of concept. The only major optimization is the design of the triple index, leastwise it doubles as the simplest possible way to access arbitrary data without the overhead of parsing and executing a query.
+No attention is paid to the efficiency of compute and memory usage. Tradeoffs are almost always made in favor of clarity concerning the mapping between conceptual model and implementation of the proof of concept. The only major optimization is the fact that the triple index structure exists, leastwise it doubles as the simplest possible way to access arbitrary data without the overhead of parsing and executing a query.
 
 Custom indexing strategies, e.g. ways to maintain a phonetic index to query for people's names, do not need to be part of the database design, because the triple indexing scheme is general enough to allow arbitrary access to the data in a manner that is efficient enough without having to declare indices upfront.
 

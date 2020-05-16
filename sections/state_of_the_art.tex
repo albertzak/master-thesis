@@ -1,33 +1,53 @@
-\cleardoublepage
 \subsection{State of the art}\label{sec:sota}
 
-This section gives and overview of the data layer paradigms
+\paragraph{Entity-attribute-value.}
 
-\paragraph{\gls{EAV}}
-6nf / rdf / triplestores
+The EAV data model is also known as \emph{open schema}, \emph{vertical database}, or \emph{long and skinny} \cite{jastrow2015entity} because in its most basic form, it is able to represent arbitrary data in a single table of just three columns (and many rows) by forcing normalization to the 6\textsuperscript{th} normal form (6NF). The model originated in medical record software \cite{huff1994help} and gained popularity through \emph{triple stores} of the Semantic Web and the Resource Description Framework (RDF). In domains where where the number of attributes related to an entity is large and modeling such data in a classical \gls{RDBMS} would require dealing with the overhead of defining and storing many columns, the EAV model provides an efficient and simple way to deal with sparse data. The namesake and basic unit of information in EAV systems is the \emph{fact}, which is a triple \lisp{[e a v]} consisting of:
+
+\begin{enumerate}[nolistsep,label={(\roman*)}]
+  \item \lisp{e}, the value identifying the \emph{entity},
+  \item \lisp{a}, an \emph{attribute} value, and
+  \item \lisp{v}, the value itself.
+\end{enumerate*}
+
+While all \emph{current} state of the system can be represented conceptually as in  \autoref{lst:examplefacts} as a single (long) sequence of facts, it would be useful to know exactly \emph{how} the system got into its current state.
+
+\begin{lstlisting}[label={lst:examplefacts},morekeywords={email-source,contacts-source},caption=A sequence of EAV facts]
+[[:patient/91 :name "Hye-mi"]
+ [:patient/91 :room :room/32]
+ [:room/32 :building "A-12"]
+ ...]
+\end{lstlisting}
 
 
-\paragraph{Event sourcing.}
-\gls{CQRS}
-often in conjunction with \gls{DDD} \cite{evans2004domain}
+\paragraph{Event Sourcing (ES).}
+Systems which derive their state solely by consuming an ordered sequence of events are called \emph{event sourced}. In practice, event sourcing is commonly associated with, and used in conjunction with \gls{DDD} \cite{evans2004domain} and the architectural pattern of \gls{CQRS} \cite{kabbedijk2012case}.
 
+DDD tends to be employed in domains where the shape of the data is mostly known in advance and generally remains rather static over the lifetime of the system, because domain events are generally tied to the code because they are modeled as classes closed for modification.
 
-\paragraph{Bitemporality}
-While uni- or monotemporal databases allow querying along the transactional sequence of historic database states
+CQRS is an architectural separation of the read paths from the write paths. In the case of classic event sourcing, this implies that when new data comes in as part of an event, the event is first appended to the global log. Afterwards, one or more materialized views (in a regular RDBMS) are updated from which the application finally performs its reads, as reading from the unwieldy log directly would be inefficient and complicated.
 
-support for bitemporality adds another separate axis
+\paragraph{Immutability.} Tying these ideas together with the EAV data model yields an event sourced database, where events are the most granular write operations on each field, akin to the transaction log of a classical database. To better convey the immutability of the log, the terms \emph{assertion} and \emph{retraction} are used in place of creation and deletion. To change a fact, one issues a transaction which simultaneously retracts the previous value and asserts the new one. An immutable EAV database consequently is the accretion of assertions and retractions of facts over time.
 
-\gls{tv} \gls{tt}
+Instead of thinking about the database as a "place" where to send queries to fetch data from and write data to, the idea pioneered by Datomic is that the entire state of the database at any given point in time should be an \emph{immutable value} which can be passed around in the program. Because it is immutable and a local value, it never changes. This has the implication that subsequent queries on the same value always result in the same results, giving a \emph{stable basis}.
 
-When extending EAV databases with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events.
+\paragraph{(Bi-)temporality.}
 
-\paragraph{Functional-reactive programming.}
+When extending EAV databases and the idea of \gls{ES} with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events. \Smartref{lst:examplefactstx} shows a fact with a pointer to a \emph{transaction entity}, about which bitemporal and other transaction metadata exists as first-class facts. This example demonstrates that the patient was actually ($t_v$) moved to room #32 at 18:30, but the fact was recorded in the system ($t_x$) later at 21:12 by user #43 as part of transaction #4.
 
-database as a value \cite{hickey2012dbvalue}
-live queries
+\begin{lstlisting}[label={lst:examplefactstx},morekeywords={:tx-id/4},caption=Transaction metadata are first-class facts]
+  [[:patient/91 :room :room/32 :txe/4]
+   [:tx-id/4 :$t_v$ #inst "2019-05-31T18:30:00"]
+   [:tx-id/4 :$t_x$ #inst "2019-05-31T21:12:00"]
+   [:tx-id/4 :tx-by :user/43]
+   ...]
+  \end{lstlisting}
 
-Continuing on to span the \gls{FRP} paradigm from the server towards the client,
-\cite{reynders2014multi}
+While uni- or monotemporal databases allow querying along the transactional sequence of historic database states (called \gls{tx}), support for bitemporality adds another separate time axis \gls{tv}, meaning the time at which the fact came into existence in the \emph{context} of the system. Note the there is no limit on the storage of arbitrary additional time-related facts related to an entity or a first-class transaction, which are referred to as \emph{domain time}. A (bi-)temporal database only provides efficient and convenient indexing and query capabilities for $t_x$ and $t_v$ values. Users querying for any other values, including domain time, must use the general querying mechanisms.
 
-When constructing the view layer out of pure functions The view as a pure function of state $v=f(s)$
-Each component specifies what data it needs, composing components needn't know inner workings -- but bundled with graphql
+\paragraph{\gls{FRP}.}
+Originally conceived to describe graphical animations \cite{elliott1997functional}, the FRP paradigm applies nicely to distributed data-intensive systems where it yields composable building blocks which are relatively easy to reason about \cite{reynders2014multi}.
+
+FRP fits particularly well inside the view layer of a \gls{SPA} to construct the view out of (nested) pure functions $v=f(s)$ which take a global state value and return a description of what to render. Each component function specifies what slice of the state it needs, recursively composes smaller components, and is automatically re-run when the state changes.
+
+Apart from web development, \cite{salvaneschi2013towards} gives an overview of the literature on the more general \gls{DRP} paradigm.

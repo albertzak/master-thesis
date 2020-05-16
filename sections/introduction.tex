@@ -7,7 +7,7 @@ Growing customer demands lead to increased incidental complexity of data-intensi
 
 
 \subsection{Contribution}
-The thesis explains a possible design of a data layer for business applications and describes its prototypal implementation. The core is a simple relational data model based on facts in the form of \gls{EAV} tuples similar to the 6\textsuperscript{th} normal form or the \gls{RDF} as seen in Semantic Web literature. Such EAV tuples are kept in an append-only (immutable) log as either assertions or retractions together with two timestamps: \gls{tx} at which the fact was added to the log, and \gls{tv} at which the fact became true in the context of the system \cite{snodgrass1992temporal}.
+The thesis explains a possible design of a data layer for business applications and describes its prototypal implementation. The core is a simple relational data model based on facts in the form of \gls{EAV} tuples similar to the \gls{6NF} or the \gls{RDF} as seen in Semantic Web literature. Such EAV tuples are kept in an append-only (immutable) log as either assertions or retractions together with two timestamps: \gls{tx} at which the fact was added to the log, and \gls{tv} at which the fact became true in the context of the system \cite{snodgrass1992temporal}.
 
 
 \paragraph{Goal.}

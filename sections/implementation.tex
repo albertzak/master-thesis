@@ -2,32 +2,61 @@
 
 The following subsections describe the implementation of the design.
 
-\subsection{Functional core, stateful shell}
-
+\paragraph{Functional core, stateful shell.}
 A guiding principle is to push impure computation and state towards the edge of the system. In fact, all of the described core functionality is implemented as pure functions operating on plain unadorned immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients.
 
 
 \subsection{Data model}
+The implementation relies heavily on the lazy immutable default data structures \cite{hickey2009persistent} provided by the Clojure core library, which remain performant even when used in strange ways thanks to structural sharing \cite{okasaki1999purely}.
+
+
 
 \begin{itemize}
-\item A \emph{fact} is represented as a vector: \lisp{[e a v tv]}
-\item A \emph{transition} is a fact with an indicator whether it is an assertion (\lisp{:+}) or retraction (\lisp{:-}) \lisp{[:+ e a v tv]}
-\item A \emph{transaction} is a list of transitions atomically applied at the same logical time. \lisp{[[:+ ...] [:- ...] [:+...]]}
-\item A \emph{commit} is a transaction with a tx timestamp: \lisp{[2020 [:+ ...] [:- ...] [:+...]]}
-\item The \emph{log} is an ordered list of commits. All changes over time to the database are fully described by the log.
-\item An \emph{index} is an associative nested structure 3 layers deep: {:avet {:name {"chu" {:person/1 2020}}}} (where's the bitemporality in the index?)
-\item The database additionally keeps a vector of four indices: EAVT, AVET, VAET, AEVT for efficient querying.
-\end{itemize}
+\item A \emph{fact} is represented as a vector, its elements can be of any Clojure value type.
+
+\begin{center}
+  \lisp{[e a v]}
+\end{center}
+
+\item A \emph{transition} is a vector containing the splatted fact as its first three elements, along with an indicator whether it is an assertion (\lisp{:+}) or retraction (\lisp{:-})
+
+\begin{center}
+  \lisp{[e a v :+]}
+\end{center}
+
+\item A \emph{transaction} is a vector of transitions, requested by the client to be atomically applied to the log \emph{by the server at some point in the future.} A transaction may contain \emph{meta facts} about itself (using the \lisp{:tx-meta} entity).
+
+\begin{center}
+  \lisp{[[e a v :-] [e a v :+] [:tx-meta a v]]}
+\end{center}
 
 
---
+\item A \emph{commit} is a transaction that was successfully applied by the server, meaning that any consistency criteria succeeded and the server's state was updated. A commit is the successful response to a transaction request, and is broadcast to all connected clients. It has similar shape and contents as the transaction it represents. Each non-meta transition of the committed transaction contains as its last element the same newly-generated transaction entity reference \lisp{txe}. There is also now at least the $t_x$ transaction meta fact added, and optionally any derived facts.
 
-should facts hace a (tx or tv ordered?) uuid so that client can cache facts by uuid,
-and request ranges of uuids?
--- leaning towards nope, as likely only a perf benefit
+\begin{center}
+  \lisp{
+    [[e a v :+ txe]
+     [e a v :- txe]
+     [txe :tx $t_x$]]
+  }
+\end{center}
 
 
-\subsection{Bitemporal index}
+% \item A \emph{commit} is a transaction with a tx timestamp: \lisp{[2020 [:+ ...] [:- ...] [:+...]]}
+% \item The \emph{log} is an ordered list of commits. All changes over time to the database are fully described by the log.
+% \item An \emph{index} is an associative nested structure 3 layers deep: {:avet {:name {"Hye-mi" {:patient/91 :tx/31}}}} (where's the bitemporality in the index?)
+% \item The database additionally keeps a vector of four indices: EAVT, AVET, VAET, AEVT for efficient querying.
+% \end{itemize}
+
+
+
+\paragraph{Transaction meta facts.}
+A client may supply arbitrary transaction metadata, except $t_x$ which is always set by the server. To send metadata, the client adds transitions to the transaction, which have the magic value \lisp{:tx-meta} set as their entity. Before committing a transaction, the server will replace this value in the transitions with a newly generated entity.
+
+
+
+
+\subsection{Bitemporality.}
 
 TODO figure out
 
@@ -36,6 +65,10 @@ ivtt vs tx?
 IVTT valid time trees \cite{nascimento1995ivtt}
 
 TX layered [Rubinstein?]
+
+as-of
+since
+as-if
 
 
 \subsection{Pattern matching query engine}
@@ -99,7 +132,3 @@ completely separate server side tuple dataset for each client.
 TODO: how to deregister clients?
 
 TODO should all subscriptions have a (ordered?) uuid?
-
-How to maintain sort in storage while novelty comes in? Cannot always reorder whenever a new fact appears. Google's BigTable Accumulates up to 64MB of novelty in memory. Current view= mem+storage. Occasionally integrates memory into storage, then releases memory. BUT creates whole copy of new flat file in stoage. we want to share previous structure. [Hickey/BigTable]
-
-We can keep durability guarantees even with Periodic sorting by immediately appending novelty to a durable, unordered log.
