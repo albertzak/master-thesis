@@ -23,7 +23,7 @@ The following two subsections qualitatively review the contribution with respect
 
 \subsection{Limitations}
 
-\paragraph{Query engine.} No negation, no aggregations, no pull, no multi-way joins, no destructuring -- the minimalist implementation of the query language presented in this thesis does not warrant comparison to a proper Datalog.
+\paragraph{Query engine.} No negation, no aggregations, no pull, no multi-way joins, no destructuring -- the minimalist implementation of the query language presented in this thesis does not even deserve comparison to a proper Datalog.
 
 \paragraph{No schema.} Determining if fact was superseded needs upfront specification of cardinality. A production system would need to define a schema and at least enforce cardinalities on each attribute, i.e. the number of values that can be considered "current" for an attribute, e.g. that a person can have \emph{many} phone numbers but only \emph{one} birthdate.
 
@@ -35,7 +35,7 @@ The following two subsections qualitatively review the contribution with respect
 
 \paragraph{Time-aware queries.} A complex query might want to mix different timelines in single query, e.g. join previous values with current values. This is not possible in the simplistic presented design. Datalog, however, has been extended with temporal semantics in various works \cite{alvaro2010dedalus, aref2015design}.
 
-\paragraph{Stand-alone queries.} The query engine provides no means for abstracting and composing fragments of queries in a \emph{hygienic} way so that expected lexical scoping semantics of logic variables are observed.
+\paragraph{Stand-alone queries.} The query engine provides no means for abstracting, parameterizing, and composing fragments of queries in a \emph{hygienic} way so that expected lexical scoping semantics of logic variables are observed.
 
 \paragraph{Dynamic typing.} During implementation and refactoring of the prototype, a clear majority of bugs were caused by a mismatch of expected vs. actual structure of data types being passed around. While the highly dynamic nature of the language enables extremely quick experimentation, a small number of functions would have benefitted from a lightweight layer of gradual typing, as afforded by e.g. \lisp{clojure.spec} \cite{pinzaru2019towards}.
 

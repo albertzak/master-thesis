@@ -1,8 +1,6 @@
 \cleardoublepage
 \section{Future Work}
 
-\paragraph{Full stack laziness.} A fully lazy distributed data structure would allow transparent access and local caching of all facts for which the client passes access rules set up by the server. Such a design would also allow transparent querying of past facts, possibly aided by hints from the programmer as to where (on client or server) the query should be executed.
-
 \paragraph{Safe concurrent editing.}
 A distributed system expects connection loss and simultaneous conflicting edits. It should be possible to define a schema that selects one of many built-in conflict resolution strategies specific to the domain requirements of each attribute. A per-field specifiable tradeoff as dictated by the \gls{cap} theorem of C and A must propagate to the clients and dictate the possible operations on the data item in question given the current network conditions \cite{emerick2014api}.
 
@@ -12,41 +10,15 @@ A \gls{DRP} approach by \cite{margara2014we} focuses strongly on selectable cons
 The Braid protocol \cite{braid19} is an in-progress draft of a proposed \gls{IETF} standard to add history, editing, and subscription semantics to HTTP resources. It aims to standardize the representation and synchronization of arbitrary web application state. Braid can allow simultaneous editing of the same resource by different clients and servers and can guarantee a consistent resulting state via selectable \emph{merge types} implementing various CRDTs and OTs.
 
 
-\paragraph{(Temporal) logic constraints.}
+\paragraph{(Temporal) logic constraints.} An ideal programming environment would let the programmer "use logic to express what is true, use logic to check whether something is true, [and] use logic to find out what is true \cite{sicp}". Research by \cite{alvaro2010dedalus,alvaro2011consistency} explores temporal extensions to Datalog and a domain-specific language for describing time-dependent behavior of distributed systems.
 
-"use logic to express what is true, use logic to check whether something is true, use logic to find out what is true" \cite{sicp}
+\paragraph{Full stack laziness.} A fully lazy distributed data structure would allow transparent access and local caching of all facts for which the client passes access rules set up by the server. Such a design would also allow transparent querying of past facts, possibly aided by hints from the programmer as to where (on client or server) the query should be executed.
 
-minikanren \cite{byrd2010relational}
-
-
-[alvaro] "state is induction in time" (see intro) dedalus \cite{alvaro2010dedalus} reifies time: three temoporal extenstions to datalog:
-\gls{CALM} \cite{alvaro2011consistency}
-
-1. deductive (== plain datalog, now now now semantics) p(A,B) :- q(A,B).
-2. inductive rule (contraint across "next" timestep) p(A,B)@next :- q(A,B).
-3. async tile (constraint across arbitrary timesteps) p(A,B)@async :- q(A,B).
-
-dedalus: also allows us to characterize relationships between states.
-key relationships: atomicity, mutual exclusion, sequentiality.
-@next is powerful! can say:
-- "these two facts have to occur together or not at all" = atomicity
-- "these two facts can occur one or the other, but not both" = mutual exclusion
-- "this thing happens, then this thing happens" = sequentiality
+\paragraph{Incremental maintenance.} Efficient execution of Datalog programs installed as "live" queries entails incremental updating of the result set as the source data changes.
+Research in the direction of incremental view maintenance in such systems includes timely dataflow \cite{murray2013naiad}, differential dataflow \cite{mcsherry2013differential}, and 3DF providing an implementation of reactive Datalog for Datomic \cite{gobel2019optimising}.
 
 
-\paragraph{Incremental maintenance.}
-
-\cite{green2013datalog}
-timely dataflow \cite{murray2013naiad}
-The Differential dataflow \cite{mcsherry2013differential}
-
-The 3DF
-3df [reactive datalog for datomic, goebel] \cite{gobel2019optimising}
-
-
-\paragraph{Data as code.}
-Do we need version control?
-Hyperfiddle \cite{getz18hyperfiddle}
+\paragraph{Data as code.} As the presented system's flexibility allows storing, versioning, replicating and querying arbitrary data, including functions, the question arises of how an entire application can be constructed with all its code existing as facts inside the database, replicating to the clients -- thus closing the circle back to MUMPS-like systems.
 
 
 \cleardoublepage

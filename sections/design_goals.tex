@@ -1,8 +1,8 @@
 \subsection{Goals}
 
-A flexible \emph{data layer} for small to medium size internal business applications for distributed collaboration in near real time, optimized for developer productivity but still backed by relational guarantees.
+To reduce some of the complexities in question, \cite{tarpit} recommend adopting functional and declarative programming constructs, along with a fully relational data model. The described system should provide a flexible \emph{data layer} for small to medium size internal business applications for distributed collaboration in near real time, optimized for developer productivity but still backed by relational guarantees.
 
-To reduce some of the complexities in question, \cite{tarpit} recommend adopting functional and declarative programming constructs, along with a fully relational data model.
+\paragraph{Notion of memory.} The requirement of strict auditability of \emph{everything} implies keeping a queryable history of structured facts. An event sourced data model with explicit time and memory based on an accretion of facts fits this requirement. Especially when structured in 6NF/EAV, their combination affords a "save everything, query later" way of thinking by being access path independent.
 
 \paragraph{Streaming relational queries.}
 Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_rest}. What is needed for rich interactions is a different model of streaming queries for data in motion: What is "just there" is not the data, but the query — which is \emph{instantiated in the network}, and the data flows through the query instead of the other way around. \autoref{lst:querying_data_in_motion} gives an example of a streaming query.
@@ -14,15 +14,9 @@ Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_
        contacts-source))
 \end{lstlisting}
 
+\paragraph{Transactional guarantees.} A proper data layer for an information system must afford the same transactional guarantees of Atomicity/Consistency/Isolation/Durability (ACID) as classical relational databases.
 
-\paragraph{Notion of memory.} The requirement of strict auditability of \emph{everything} implies keeping a queryable history of structured facts. An event sourced data model with explicit time and memory based on an accretion of facts fits this requirement. Especially when structured in 6NF/EAV, their combination affords a "save everything, query later" way of thinking by being access path independent.
-
-\paragraph{Adaptivity and dynamism.}
-TODO schemaless
-
-
-\paragraph{Transactional guarantees.}
-TODO Transactions (ACID)
+\paragraph{Adaptivity and dynamism.} Yet, such a system must also be malleable, adaptive, and can not require developers to settle e.g. on a fixed database schema design upfront. Instead, the system must be able to quickly co-evolve with the domain it is serving.
 
 
 \paragraph{Distribution.}

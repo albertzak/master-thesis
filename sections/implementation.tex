@@ -26,7 +26,7 @@ The minimal impure parts stay within the \lisp{client} and \lisp{server} namespa
 \paragraph{The testbed.} To aid quick experimentation while developing, all interactions between the server and the clients are simulated within a single web page. The scaffolding in the \lisp{testbed} namespace presents a simple UI to add and remove client connections, to transact facts, and to perform queries, all while providing insight into the full current state of each simulated node, see \autoref{fig:testbed}. The testbed can inject arbitrary delay into Clojure's \lisp{core.async} \emph{channels} used to simulate WebSocket connections between nodes.
 
 \subsection{Data model}\label{sec:impl_datamodel}
-The implementation relies heavily on the lazy immutable default data structures \cite{hickey2009persistent} provided by the Clojure core library, which remain performant even when used in strange ways thanks to structural sharing \cite{okasaki1999purely}.
+The implementation relies heavily on the lazy immutable default data structures \cite{hickey2009persistent} provided by the Clojure core library, which remain performant even when used in strange ways thanks to structural sharing \cite{okasaki1999purely}. This section extends and clarifies the design from \autoref{sec:conceptual_model} and translates it into Clojure.
 
 \begin{itemize}
 \item A \emph{fact} is represented as a vector, its elements can be of any Clojure value type.
@@ -151,18 +151,28 @@ The pure function \lisp{(transact db transaction txe now)} takes a database valu
   \item \lisp{apply-commit}: When the previous steps generated a description of a commit, the last step is to apply the commit: Append it to the log and update all indices. Since the commit being applied was generated from the same basis value of the database, it is guaranteed that all consistency criteria are honored and that this call cannot produce an invalid database.
 \end{itemize}
 
-\paragraph{Derivation functions.}
+\paragraph{Derivation functions.} Functions are first-class values in any functional language, even more so in a Lisp where all code is represented as data structures, and all data structures can be evaluated as code -- and passed around and stored in the database. These affordances allow the database to \emph{react} to changes to itself, \emph{on itself, without side effects}.
 
-TODO
+Users can transact derivation functions into the database, which are just facts with the special \lisp {:db/derive} attribute and a function as a value. This function must have the signature:
 
-\paragraph{Consistency constraints.}
+\begin{center}
+  \lisp{($\lambda$ [db commit]))}
+\end{center}
 
-TODO
+In the process of creating a commit these derivation functions receive the value of the database and the most current accumulated value of the commit being generated. They are expected to return a \emph{transition vector}, of which any transitions returned will be added to the current commit, before the updated commit vector is passed on to the next derivation function.
+
+Derivation functions cannot mutate the commit vector, but may issue \emph{immediate} retractions of facts contained therein. The order in which installed functions are evaluated is not specified. Since there is no way to enforce functional purity, and they may, but are not recommended to, have side effects.
+
+\paragraph{Consistency constraints.} Enforcing consistency of the database after all derivation functions have been evaluated is similarly trivial to implement: All current facts with a \lisp{:db/validate} attribute have as their value a function with the same signature as derivation functions. For the transaction to commit, every validation function is expected to return \lisp{true}.
+
+Note that there are no constraints which need to be \emph{disabled} during a transaction, but rather the final database value (after deriving facts and adding them to the current commit) is checked for consistency just once.
 
 
 \paragraph{Indexing.} The four indices \lisp{:eavt}, \lisp{:aevt}, \lisp{:avet}, and \lisp{:vaet} are created by \emph{folding} over the reversed commit log. \Cref{lst:index_code} shows the entirety of the indexing logic. Transaction boundaries are irrelevant because creating the index is atomic anyways, so the reversed log is flattened before being passed to the fold. Updating an index happens after a commit is finalized, and has the fundamental property of being \emph{incremental}, meaning that to update an existing index, only the newest commit needs to be folded in with the existing index.
 
 The fold is implemented as a reducing function with the database value as its initial element, and with \lisp{index} as its combining function, thus folding one commit into the index at a time. The \lisp{index} function destructures each element of the commit vector into its sub-elements, and decides the updating function to use based on whether it is an assertion (then associate \lisp{txe} along the index path given by \lisp{e a v}) or a retraction (then dissociate). This is why building the index needs to happen in reverse order of the log.
+
+Note that while the design of the system selected four common indices to cover general querying use cases, it is a trivial one-line change to the implementation of the \lisp{index} function to reduce or extend the set of indices to populate.
 
 \begin{lstlisting}[label={lst:index_code},morekeywords={:eavt,:avet,:aevt,:vaet,flatten,def,assoc-in,dissoc-in},caption=Updating the index]
 (def$\lambda$ index [db [e a v op txe]]
@@ -187,7 +197,7 @@ The fold is implemented as a reducing function with the database value as its in
 
 Listing \ref{lst:indexing_example_result} shows the resulting index structures after applying the commit to the database. Note that the retracted fact is not part of the index anymore, it is only accessible by scanning the structured commit log.
 
-\begin{lstlisting}[label={lst:indexing_example_result}]
+\begin{lstlisting}[label={lst:indexing_example_result},caption=Fully populated indices after transacting]
 {:index
   {:eavt {:patient/91 {:name {"Hye-mi" :txe/1}}
           :txe/1 {:$t_x$ {$t_x$ :txe/1}}}
@@ -200,6 +210,88 @@ Listing \ref{lst:indexing_example_result} shows the resulting index structures a
 \end{lstlisting}
 
 
+
+\subsection{Querying}
+
+Now that the fact has been committed to the database on the server, it is time to look at the means available to get answers to questions by querying the database value. Simply looking up data directly via the indices is the preferred way to read. There is no query parsing and execution overhead, since the data is "just here" inside a sorted and easily walkable structure. A developer using this data layer should be familiar with the use cases and performance characteristics of the various indexing structures. Refer to earlier section on the design of the index structure for examples and a comparison of use cases. This subsection sketches the implementation of the edn Datalog query engine, a completely separate and optional library. The implementation is a re-write based on \cite{rubin15aosadb} with macro-heavy code and metadata being replaced by pure functions and maps, among other simplifications.
+
+This section will look at the example query in listing \ref{lst:example_query_2} and trace it through a full evaluation, starting with main entry point, the \lisp{q} function: \lisp{(q db query)}.
+
+\begin{lstlisting}[label={lst:example_query_2},morekeywords={e,name,find,where,room,32},caption="Who's in room no. 32?"]
+        [:find [?name]
+         :where [[?e :name ?name]
+                 [?e :room :room/32]]]
+\end{lstlisting}
+
+\paragraph{Step 1: Filter the log by time}
+As per design, nontrivial and performant queries are only supported for the \emph{most recent} view of the database. There is, however, a simple way to trade \emph{some} performance for querying the state at an arbitrary past point of transaction time $t_x$: By constructing a new database value from the current state with its log truncated at some point. More generally, one can also construct a new database out of an arbitrary slice of the log, doing so however may lead to unexpected results because data asserted by "older" facts might be missing as it was cut out in the filtering stage.
+
+\paragraph{Step 2: Build a filtering sieve triple}
+
+The general working principle of the engine is that each of the \emph{query clauses} is parsed into a \emph{filtering sieve}, that is a vector containing functions which examine each part of the fact and decide whether the value being fed \emph{matches} the expected \emph{data pattern} of the initial clause. In the example, the first query clause: \lisp{[?e :name ?name]} is transformed into the following structure, containing the sieve and a positional mapping back to the logic variable:
+
+\begin{center}
+  \lisp{\{:sieve [true #(= \% :name) true] :lvars ["?e" nil "?name"]]\}}
+\end{center}
+
+The first nested vector is the sieve. It matches all facts which have an attribute of \lisp{:name}, and it does not care about entity or fact values (\lisp{true} will always match any value in that position). The second nested vector keeps track of the names and positions of the lvars from the supplied query clause, because later, when matching facts are found, their values need to be \emph{unified} with the lvar bindings. The second query clause is transformed alike:
+
+\begin{center}
+  \lisp{[?e :room :room/32]} \\
+  \lisp{\{:sieve [true #(= \% :room) #(= \% :room/32)] :lvars ["?e" nil nil]]\}}
+\end{center}
+
+The original macro implementation of the query engine by \cite{rubin15aosadb} additionally allows use of any desired unary or binary predicate as part of the matching process by simply wrapping them in a similar sieving function. This work borrows the original design and simplifies its implementation as in listing \ref{lst:make-sieve}.
+
+
+\begin{lstlisting}[label={lst:make-sieve},morekeywords={cond,not,coll,term,lvar,true,t,count,second,first,last,def,make-sieve},caption=Constructing a predicate sieve, adapted from [Rub15]]
+
+(def$\lambda$ make-sieve [term]
+  (cond
+    ; Logic variables do not filter anything yet
+    (lvar? term)
+    ($\lambda$ [_] true)
+
+    ; Constants must match
+    (not (coll? term))
+    ($\lambda$ [t] (= term t))
+
+    ; Unary operators must hold: [valid? ?x]
+    (= 2 (count term))
+    ($\lambda$ [t] ((first term) t))
+
+    ; Binary operator, lvar is first operand: [> ?age 18]
+    (lvar? (second term))
+    ($\lambda$ [t] ((first term) t (last term)))
+
+    ; Binary operator, lvar is last operand: [< 18 ?age]
+    (lvar? (last term))
+    ($\lambda$ [t] ((first term) (second term) t))))
+
+\end{lstlisting}
+
+
+
+\paragraph{Step 3: Decide index to use}
+The lvar that appears at the same position within each query clause is the \emph{joining variable}. This is a design limitation, as a full query language should support arbitrary transitive joins. 
+
+\begin{table}
+  \label{tbl:lvartoindex}
+  \caption{Mapping of joining variable position to query index, slightly adapted from \cite{rubin15aosadb}}
+  \begin{tabular}{|r|c|l|}
+    \hline
+    query clause & joining variable operates on & index to use \\ \hline
+    \lisp{[:e :a ?v]} & value & \lisp{:eavt} \\ \hline
+    \lisp{[:e ?a :v]} & attribute & \lisp{:vaet} \\ \hline
+    \lisp{[?e :a :v]} & entity & \lisp{:avet} \\ \hline
+    \end{tabular}
+\end{table}
+
+\paragraph{Step 4: Run sieve function over filtered index}
+According to the query design goals, the order of the query clauses have no semantic meaning, yet there is an effect on query evaluation performance: when the most restricting clauses are placed at the beginning, they are processed first and immediately reduce the cardinality of the set of potential results which the next clauses have to filter. Automatically optimizing clause order would require estimating the cardinality of the resulting sets, which is a complex undertaking and is thus omitted from this proof-of-concept implementation \cite{neumann2011characteristic, malik2007black}.
+
+
+\paragraph{Step 5: Unification of result tuples with the query clause}
 
 
 \subsection{Publishing and subscribing}
@@ -218,55 +310,6 @@ server keeps all of a client's queries in memory.
 
 completely separate server side tuple dataset for each client.
 
-TODO: how to deregister clients?
+how to deregister clients?
 
-TODO should all subscriptions have a (ordered?) uuid?
-
-
-
-\subsection{Querying}
-
-The query engine is implemented as a completely separate and optional library.
-
-\paragraph{Step 1: Filter the log by time}
-depending on the query's time modifier medatata
-(as-of, as-at)
-
-as-of
-since
-as-if
-
-
-\paragraph{Step 2: Build a filtering sieve triple}
-
-The query clauses get transformed into a two element tuple, containing the sieve and a positional mapping back to the logic variable names.
-
-[?e :name "Company A"]
-
-; [[true #(= % :works-for) true] ["?p" nil "?e"]]
-; [[true #(= % :name) #(= % "MyPlace")] ["?p" nil "?e"]]
-
-
-\paragraph{Step 3: Decide index to use}
-\autoref{tbl:lvartoindex}
-The lvar that appears in each clause at the same position is the joining variable. This is a limitation, as a full query language should support arbitrary transitive joins.
-
-\begin{table}
-  \label{tbl:lvartoindex}
-  \caption{Mapping of joining variable position to query index, slightly adapted from \cite{rubin15aosadb}}
-  \begin{tabular}{|r|c|l|}
-    \hline
-    query clause & joining variable operates on & index to use \\ \hline
-    \lisp{[:e :a ?v]} & value & \lisp{:eavt} \\ \hline
-    \lisp{[:e ?a :v]} & attribute & \lisp{:vaet} \\ \hline
-    \lisp{[?e :a :v]} & entity & \lisp{:avet} \\ \hline
-    \end{tabular}
-\end{table}
-
-\paragraph{Step 4: Run sieve function over filtered index}
-
-According to the query design goals, the order of the query clauses have no semantic meaning, yet there is an effect on query evaluation performance: when the most restricting clauses are placed at the beginning, they are processed first and immediately reduce the cardinality of the set of potential results which the next clauses have to filter. Automatically optimizing clause order would require estimating the cardinality of the resulting sets, which is a complex undertaking and is thus omitted from this proof-of-concept implementation \cite{neumann2011characteristic, malik2007black}.
-
-
-
-\paragraph{Step 5: Unification of result tuples with the query clause}
+should all subscriptions have a (ordered?) uuid?

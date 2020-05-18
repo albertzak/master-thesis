@@ -119,7 +119,6 @@ acs-*.bib
 
 # knitr
 *-concordance.tex
-# TODO Comment the next line if you want to keep your tikz graphics files
 *.tikz
 *-tikzDictionary
 
@@ -185,11 +184,6 @@ pythontex-files-*/
 *.dpth
 *.md5
 *.auxlock
-
-# todonotes
-*.tdo
-
-# easy-todo
 *.lod
 
 # xindy

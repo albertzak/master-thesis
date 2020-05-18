@@ -7,26 +7,26 @@
 
 \subsection{Conceptual model}\label{sec:conceptual_model}
 
-TODO
+The data model of the presented system is extremely simple. There is no requirement to design a schema or to differentiate between entities and relationships. Yet, \emph{all} structured data can be represented in the system as long as data is fully normalized (6NF).
 
 \begin{itemize}
-  \item A fact is a triple \lisp{[e a v]}
+  \item The basic unit of information is a \emph{fact}, a triple \lisp{[e a v]} containing values representing \emph{entity}, \emph{attribute}, and \emph{value}.
 
-  \item A transition is a fact with an indicator whether it is an assertion \lisp{[:+ e a v]} or retraction \lisp{[:- e a v]}.
+  \item Over time, facts are \emph{asserted} and \emph{retracted}, accreted as part of a \emph{transaction}.
 
-  \item A transaction is a list of transitions epochally applied at the same logical time and a pointer to the transaction, \lisp{tx}, which holds the value of a (newly-generated) transaction entity id: \lisp{[[+ ... tx] [- ... tx] [+ ... tx]]}
-
-  \item The log is a single ordered list of transactions.
-
-  \item The database is fully described by the log.
-
+  \item The database and all changes to its state over time are fully described by the transaction log of assertions and retractions of facts.
 \end{itemize}
 
-\subsection{Indexing}
+\paragraph{Indexing.}
 
-TODO
+EAV systems commonly keep a number of sorted indices (see \autoref{tbl:indices}) to allow the data to be retrieved from multiple "angles", depending on the need of the query. Index structures are named after the \emph{nesting order} in which the elements of the facts are arranged. Not all database systems maintain the same indices. In this case, the system keeps four indices covering the following common use cases:
+\begin{itemize}
+  \item EAVT, the canonical order, which \emph{maps} an entity to its attributes like a document,
+  \item AEVT, for finding entities which \emph{have} a certain attribute set
+  \item AVET, for \emph{filtering} entities by a known attribute set to a known value,
+  \item VAET, for \emph{searching} over all attributes of all entities by a known value.
+\end{itemize}
 
-Commonly used index sort orders in EAV systems and their strengths are compared in \autoref{tbl:indices}.
 
 \newcolumntype{s}{>{\hsize=.5\hsize}X}
 
@@ -43,11 +43,29 @@ Commonly used index sort orders in EAV systems and their strengths are compared 
   \end{tabularx}
 \end{table}
 
+For example, here is a simple example to pull out the name of a known patient, using only the \lisp{get-in} function of the Clojure core library on the \lisp{:eavt} index:
+
+\begin{center}
+  \lisp{(get-in db [:eavt :patient/91 :name])}
+\end{center}
+
+One can also leave out the attribute, and get back a map (as a conceptual \emph{document}) containing all known attributes related to that entity.
+
+\begin{center}
+  \lisp{(get-in db [:eavt :patient/91])}
+\end{center}
+
+Performing a search by name over all patients is similarly trivial using the \lisp{:avet} index, with the result
+
+\begin{center}
+  \lisp{(get-in db [:avet :name "Hye-mi"])}
+\end{center}
+
 
 
 \subsection{Query language}
 
-This section describes the ideas behind the query language, which is a greatly simplified language modeled after the relational query language used in Datomic, which is in turn a Lisp variant of the Datalog \cite{abiteboul1988datalog} language expressed using the syntactic forms of Clojure's \gls{edn}.
+The query language of the system is a greatly simplified language modeled after the pattern matching relational query language used in Datomic, which is in turn a Lisp variant of the Datalog \cite{abiteboul1988datalog} language expressed using the syntactic forms of Clojure's \gls{edn}.
 
 The choice of language is arbitrary -- any relational language would suffice -- and the core of the database does not depend on any query language capabilities Modeling the language after the one used in Datomic was chosen because because not only has the edn notation become a de-facto standard for other EAV databases like Crux, EVA, and Datascript, but because the shape of each query clause maps naturally to the representation of a fact in canonical EAV order.
 
@@ -55,12 +73,12 @@ See \autoref{lst:example_query} for an query consisting of four query clauses (t
 
 Performing a query entails applying the \lisp{q} function to a database value and a query. Clients can thus decide whether to leverage the query language via loading a library, or just access the data via the index structures directly.
 
-\begin{lstlisting}[label={lst:example_query},caption=Example edn Datalog query]
-'[:find [?name ?company ?location]
+\begin{lstlisting}[label={lst:example_query},caption="Who from Korea is working for whom?"]
+'[:find [?name ?company]
   :where [[?p :works-for ?e]
           [?e :name ?company]
           [?p :name ?name]
-          [?p :location ?location]]]
+          [?p :location "Korea"]]]
 \end{lstlisting}
 
 \paragraph{Temporal and bitemporal queries.}
