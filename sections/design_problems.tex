@@ -12,30 +12,10 @@ Modeling domains in common \gls{RDBMS} requires distinguishing between entity an
 Traditional RDBMSs enforce a structural rigidity of fitting data into "tables", "rows", and "columns", entailing a lack of flexibility in dealing with sparse data, irregular data, hierarchies, or multi-valued attributes \cite{hickey2012dbvalue}. Finally, SQL as a query language when embedded into the application's main programming language is usually treated as a second class citizen by resorting to concatenation of strings with a thin layer of sanitization. (Microsoft's LINQ \cite{meijer2006linq} is a notable exception.) Features such as materialized views are cumbersome to use because the language lacks powerful means of abstraction and composition \cite{sicp} which would enable recursively composing complex queries out of smaller queries.
 
 \paragraph{Object-relational mismatch.}
-\gls{ORM} of tuples from the database onto whichever data types are available in the backend programming languages, and increasingly also to the language in the front end in \gls{SPA}, as well as the choice of appropriate communication interfaces between at least three layers pose additional considerations.
-
-proliferation of types
-
-
-\paragraph{Analytics vs. transactions.}
-Calderwood: Avoid divide of OLTP/OLAP (perform analytics on live data)
+\gls{ORM} of tuples from the database onto whichever data types are available in the backend programming languages, and increasingly also to the language in the front end in \gls{SPA}, as well as the choice of appropriate communication interfaces between at least three layers pose additional considerations. Duplicating structure in schema definitions and again in ORM code leads to a proliferation of types.
 
 \paragraph{Time.}
-Temporal databases are commonly optimized for analytics performance over large numeric datasets, e.g. sensor readings over time. Temporal extensions to SQL \cite{kulkarni2012temporal} are convoluted and do not address the fundamental problem at hand, which is that typical mutable-state systems obscure the sequence of events that brought the world into the current state.
-
-Monotemporality (i.e. )
-
-
-What's the customer's actual intent? Obscures the story, what happened to bring us to the current state? How to audit that sequence of events for correctness/security/compliance?
-
-
-notion of database as "memory" requires bitemporality.
-
-
-"Information and Time" Memory and records, remember and keep, auditing
-
-place orientation
-
+Temporal databases are commonly optimized for analytics performance over large numeric datasets, e.g. sensor readings over time. Temporal extensions to SQL \cite{kulkarni2012temporal} are convoluted and do not address the fundamental problem at hand, which is that typical mutable-state systems obscure the sequence of events that brought the world into the current state. The notion of a database as memory over time requires keeping an easily auditable log of records.
 
 \paragraph{Distribution.}
 Thinking that data resides "over there" on a remote server breeds a "fear of round trips" and causes developers to accumulate incidental complexity in the form of performance optimizations related to caching \cite{hickey2012dbvalue}.
@@ -59,11 +39,4 @@ The traditional understanding of queries for data at rest as in \autoref{lst:que
       departments))
 \end{lstlisting}
 
-When the underlying data changes, queries do not get re-run automatically and clients are left looking at stale data.
-
-
-
-"Perception and Reaction" We'd like reactive systems that don't poll. consistent
-
-
-"Consistency and Scale" - we need a stable basis, same query, same results
+When the underlying data changes, queries do not get re-run automatically and clients are left looking at stale data. On the flip side, re-running the same query at different times is not guaranteed to yield the same results, as the database might have changed in the mean time. There are no facilities to temporally stabilize a basis for queries.

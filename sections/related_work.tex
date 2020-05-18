@@ -46,13 +46,15 @@ Instead of thinking of the database as a single \emph{place} to send queries to 
 
 \paragraph{Crux.} Rooted in the same core principles as Datomic but having taken some different architectural choices, Crux is an efficient \emph{bitemporal} schemaless unbundled document database. For a detailed comparison with Datomic, see \cite{juxtcrux}.
 
-\paragraph{Datascript.} Similarly inspired by Datomic, DataScript \cite{prokopov15datascript} is an immutable schemaless in-memory EAV store. It lacks notion of time because it is designed to manage frequently changing client-side state of a \gls{SPA} within the browser for the lifetime of a session, using limited memory.
+\paragraph{Datascript et al.} Similarly inspired by Datomic, DataScript \cite{prokopov15datascript} is an immutable schemaless in-memory EAV store. It lacks notion of time because it is designed to manage frequently changing client-side state of a \gls{SPA} within the browser for the lifetime of a session, using limited memory.
 
 Several attempts exist to bridge the gap between a Datomic-like database on the server and a DataScript instance on the client used simultaneously for client-only view state as well as for caching tuples from the server \cite{small16datscript}; as well as the gap between that database and the view layer \cite{parker15posh,krivosheev19reposh}. Datahike \cite{datahike} is a port of DataScript back to the server, where it adds durable persistence. It aims to be a single-node replacement for Datomic suitable small projects.
 
 Mozilla Mentat \cite{mozillamentat} was an attempt at a performant embeddable implementation in Rust of a combination of ideas from Datomic, DataScript, and SQLite.
 
 Eva \cite{eva} is an open source monotemporal EAV database very similar to and compatible with the \gls{API} of Datomic, though the project appears to be abandoned in a feature-complete "alpha" quality stage.
+
+Ittyon \cite{ittyon} is a Clojure library to manage distributed state in games based on ideas from Entity-Component Systems (ECS) combined with the EAV+$t_x$ data model. Its client/server architecture via \emph{channels} inspired the implementation of the prototype described in \autoref{sec:implementation}.
 
 \paragraph{LogicBlox.} A notable proprietary commercial RAD self-serve database system with an integrated programming language based on Datalog, LogicBlox \cite{aref2015design} similarly aims to reduce incidental complexity of developing line-of-business applications with a focus on probabilistic and predictive analytics of large business data sets. Its developers have contributed a novel efficient algorithm for incremental view maintenance for Datalog systems \cite{veldhuizen2012leapfrog}.
 

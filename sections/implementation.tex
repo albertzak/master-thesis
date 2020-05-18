@@ -1,15 +1,32 @@
 \section{Implementation}\label{sec:implementation}
 
-The following subsections describe the implementation of the design.
+The following subsections describe the implementation of the design explained in the previous section. The conceptual data model from \autoref{sec:conceptual_model} is translated to Clojure in \autoref{sec:impl_datamodel}. Next, a guided tour follows the \emph{data path} from new a fact originating on a client all the way through the server and to the other clients, showing and explaining the simple functions that transform it along the way.
 
 \paragraph{Functional core, stateful shell.}
-A guiding principle is to push impure computation and state towards the edge of the system. In fact, all of the described core functionality is implemented as pure functions operating on plain unadorned immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients.
+While Clojure does not enforce functional purity, it is idiomatic to push impure computation and state towards the edge of the system. In fact, core functionality described in the next subsection is implemented as pure functions operating on plain immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients. Clients and server obviously need to keep some state, but each does so within one single place only.
+
+\paragraph{Code organization.} Three pure namespaces make up the functional core of the system:
+
+\begin{enumerate}[label={(\roman*)}]
+  \item \lisp{core} implementing the basic pure functions and data structures to create and transact facts,
+  \item \lisp{index} implementing pure functions to place facts into indices,
+  \item \lisp{query} implementing pure functions to provide basic querying capabilities with a language based on edn Datalog.
+\end{enumerate}
+
+The minimal impure parts stay within the \lisp{client} and \lisp{server} namespaces. Their task is to handle the asynchronous connection with each other (\lisp{connect!}, \lisp{disconnect!}, \lisp{receive}, \lisp{broadcast!}) and mutate their local copy of the database (\lisp{transact!})
 
 
-\subsection{Data model}
+\cleardoublepage
+\begin{figure}[!ht]
+  \includegraphics[width=0.9\linewidth]{images/testbed.png}
+  \caption{Two connected clients in the testbed.}
+  \label{fig:testbed}
+\end{figure}
+
+\paragraph{The testbed.} To aid quick experimentation while developing, all interactions between the server and the clients are simulated within a single web page. The scaffolding in the \lisp{testbed} namespace presents a simple UI to add and remove client connections, to transact facts, and to perform queries, all while providing insight into the full current state of each simulated node, see \autoref{fig:testbed}. The testbed can inject arbitrary delay into Clojure's \lisp{core.async} \emph{channels} used to simulate WebSocket connections between nodes.
+
+\subsection{Data model}\label{sec:impl_datamodel}
 The implementation relies heavily on the lazy immutable default data structures \cite{hickey2009persistent} provided by the Clojure core library, which remain performant even when used in strange ways thanks to structural sharing \cite{okasaki1999purely}.
-
-
 
 \begin{itemize}
 \item A \emph{fact} is represented as a vector, its elements can be of any Clojure value type.
@@ -18,66 +35,207 @@ The implementation relies heavily on the lazy immutable default data structures 
   \lisp{[e a v]}
 \end{center}
 
-\item A \emph{transition} is a vector containing the splatted fact as its first three elements, along with an indicator whether it is an assertion (\lisp{:+}) or retraction (\lisp{:-})
+\item A \emph{transition} is either an \emph{assertion} or \emph{retraction}, a vector containing the splatted fact as its first three elements, along with an indicator whether to assert (\lisp{:+}) or retract (\lisp{:-}) the preceding fact.
 
 \begin{center}
   \lisp{[e a v :+]}
 \end{center}
 
-\item A \emph{transaction} is a vector of transitions, requested by the client to be atomically applied to the log \emph{by the server at some point in the future.} A transaction may contain \emph{meta facts} about itself (using the \lisp{:tx-meta} entity).
+\item A \emph{transaction} is a vector containing an arbitrary number of transitions, which are to be atomically applied to the log \emph{at some point in the future.} Note that a transaction does not mutate the database, it is at this point just a data structure expressing intent to assert or retract facts. A transaction may contain \emph{meta facts} about itself, using the "magic" placeholder value for the transaction entity \lisp{:tx-meta}.
 
 \begin{center}
-  \lisp{[[e a v :-] [e a v :+] [:tx-meta a v]]}
+  \lisp{[[e a v :-] [e a v :+] [:tx-meta a v :+]]}
 \end{center}
 
 
-\item A \emph{commit} is a transaction that was successfully applied by the server, meaning that any consistency criteria succeeded and the server's state was updated. A commit is the successful response to a transaction request, and is broadcast to all connected clients. It has similar shape and contents as the transaction it represents. Each non-meta transition of the committed transaction contains as its last element the same newly-generated transaction entity reference \lisp{txe}. There is also now at least the $t_x$ transaction meta fact added, and optionally any derived facts.
+\item A \emph{commit} (\autoref{lst:commit_structure}) is a transaction that was successfully applied to the database, meaning that any consistency criteria succeeded and a new database value containing the updated state was produced. It has similar shape and contents as the transaction it represents. Each transition of the committed transaction contains as its last element the same newly-generated transaction entity reference \lisp{txe}. There is also now at least the $t_x$ transaction meta fact added and optionally any derived facts.
+
+\begin{lstlisting}[label={lst:commit_structure},morekeywords={:+,:-,txe},caption=Structure of a commit]
+  [[e a v :+ txe]
+   [e a v :- txe]
+   [txe :$t_x$ $t_x$ :+ txe]]
+\end{lstlisting}
+
+\item The \emph{log} is an ordered linked list of all commits. All changes over time to the database are fully described by the log, with the newest commit being appended to the beginning.
 
 \begin{center}
-  \lisp{
-    [[e a v :+ txe]
-     [e a v :- txe]
-     [txe :tx $t_x$]]
-  }
+  \lisp{'([...] [...] ...)}
 \end{center}
 
+\item An \emph{index} (\autoref{lst:index_structure}) is an associative nested structure (map). There are four indices, each three layers deep: \lisp{:eavt}, \lisp{:veat}, \lisp{:avet}, named after the nesting order of their keys with the last \lisp{t} referring to the transaction entity \lisp{txe}.
 
-% \item A \emph{commit} is a transaction with a tx timestamp: \lisp{[2020 [:+ ...] [:- ...] [:+...]]}
-% \item The \emph{log} is an ordered list of commits. All changes over time to the database are fully described by the log.
-% \item An \emph{index} is an associative nested structure 3 layers deep: {:avet {:name {"Hye-mi" {:patient/91 :tx/31}}}} (where's the bitemporality in the index?)
-% \item The database additionally keeps a vector of four indices: EAVT, AVET, VAET, AEVT for efficient querying.
-% \end{itemize}
+\begin{lstlisting}[label={lst:index_structure},morekeywords={:+,:-,txe},caption=Structure of the indices]
+{:index
+  {:eavt {e {a {v txe}}
+          e {a {v txe}} ...}
+   :aevt {a {e {v txe}}
+          a {e {v txe}} ...}
+   :avet {a {v {e txe}}
+          a {v {e txe}} ...}
+   :vaet {v {a {e txe}}
+          v {a {e txe}} ...}}}
+\end{lstlisting}
 
+\item Finally, the \emph{database} (db) is a map containing the log list and the index map.
 
+\begin{center}
+  \lisp{\{:log '() :index \{\}\}}
+\end{center}
+
+\end{itemize}
+
+\paragraph{Commits do not mutate the database.}
+Note that a commit itself has no notion of place or state, and does not mutate anything, it only signifies that a transaction was successfully applied to \emph{some} database value \emph{somewhere}. A commit \emph{may} mean that the server has successfully updated its state and broadcast the commit to all connected clients, or, since the database value is immutable, it may just be the result of any local \emph{"as-if"} dry run.
 
 \paragraph{Transaction meta facts.}
 A client may supply arbitrary transaction metadata, except $t_x$ which is always set by the server. To send metadata, the client adds transitions to the transaction, which have the magic value \lisp{:tx-meta} set as their entity. Before committing a transaction, the server will replace this value in the transitions with a newly generated entity.
 
 
+\subsection{Writing}
+
+This subsection follows a simple fact in canonical EAV format, originating on a client, through its transformations until it ends up on the server's canonical source-of-truth database. Starting with the fact
+
+\begin{center}
+  \lisp{[:patient/91 :name "Hye-mi"]}
+\end{center}
+
+and calling \lisp{assert} on it yields an \emph{assertion transition}, which is created through \emph{conjoining} (i.e. appending as a last element) the \lisp{:+} keyword with the fact vector. Similarly, calling \lisp{(retract fact)} conjoins \lisp{:-}. The result, the example case, is an assertion vector:
+
+\begin{center}
+  \lisp{[:patient/91 :name "Hye-mi" :+]}
+\end{center}
+
+The database only accepts transitions to be atomically applied as part of a transaction vector. For example, to update a value, simultaneously retract the previous value and assert a new value for the same combination of entity.
+
+\begin{center}
+  \lisp{[[:patient/91 :name "Hye-min" :-] [:patient/91 :name "Hye-mi"  :+]]}
+\end{center}
+
+\paragraph{On cardinalities.} A quick side note: What would happen if one were to assert multiple values for the same combination of entity and attribute? Should any previous values be retracted automatically, resulting in one value being "true" at a time? Should all values stay current until retracted? The path chosen in this implementation was to only support the more general case (which also happens to be simpler to implement) of \emph{defaulting to multi-valued cardinalities on all attributes}. This may lead to unexpected results in queries. A production system would need to define a schema and enforce \emph{many} or \emph{one} cardinalities on each attribute depending on the requirements of the domain model.
+
+\paragraph{Server interface.}
+This transaction can now be committed to a database value, either locally to create a new database, or globally for all clients by sending it to the server. In production systems, a server would likely not accept arbitrary transactions from clients. Instead, the database is protected by endpoints which, after authentication and authorization, accept and sanitize only specific parameters to transact.
+
+The testbed server accepts one type of message, a vector beginning with the keyword \lisp{:transact} containing the entire transaction vector nested as its second element.
+
+\begin{center}
+  \lisp{[:transact [[:patient/91 ... :-] [:patient/91 ... :+]]]}
+\end{center}
+
+When received, the server calls \lisp{(transact db transaction)} and \lisp{swap!}s (atomically updates) its state. Note that clients do not attempt to \emph{optimistically} update their local database but rather wait for the server to confirm the transaction and broadcast the final \emph{commit} back to all clients. Safe means for performing optimistic updates remain a topic that needs further research.
+
+\paragraph{ACID transactions.}
+Thanks to Clojure's immutable data structures, implementing transactions that respect \gls{ACID} guarantees is almost trivial.
+The pure function \lisp{(transact db transaction txe now)} takes a database value, a transaction vector, a new unique entity \lisp{txe} and the current time which is to be used as transaction time $t_x$. The \lisp{txe} value is usually either a globally incrementing number or a randomly generated string like a \gls{UUID} version 4. It is up to the impure calling code on the server to generate and supply these two values. The \lisp{transact} function returns a \emph{new} database value with the transaction committed, i.e. appended to the log and with the indices updated. Transacting is a nested multi-step process:
+
+\begin{itemize}
+  \item \lisp{commit}: Generates another data structure which describes the commit about to happen. The same arguments as to \lisp{transact} are passed along, resulting in the commit data structure depicted in \autoref{lst:commit_example}:
+
+  \begin{lstlisting}[label={lst:commit_example},morekeywords={:txe/1},caption=A commit of one retraction and two assertions]
+      [[:patient/91 :name "Hye-min" :- :txe/1]
+       [:patient/91 :name "Hye-mi" :+ :txe/1]
+       [:txe/1 :$t_x$ $t_x$ :+ :txe/1]]
+  \end{lstlisting}
+
+  To generate this data structure, \lisp{commit} performs the following steps:
+  \begin{itemize}
+    \item \lisp{(conj transaction [txe :$t_x$ now :+])}: Conjoins the non-optional assertion of the $t_x$ meta fact with the supplied transaction vector.
+
+    \item \lisp{(map #(conj \% txe) transaction)}: Conjoins the \lisp{txe} value as the last element of each transition in the amended transaction vector returned from the previous step.
+
+    \item \lisp{(derive-transitions transaction db txe now)} Some previously added facts in the database may be of a special attribute which indicates that the value is a \emph{derivation function}. These functions receive a pending database value and may return additional assertions or retractions, for example to keep a phonetic index on people's names updated. The behavior of \lisp{derive-transitions} is described later.
+
+    \item \lisp{(validate db)} Finally, the pending commit is applied to a new database, and its installed constraint functions are checked. The behavior of \lisp{validate} is described later.
+  \end{itemize}
+
+  \item \lisp{apply-commit}: When the previous steps generated a description of a commit, the last step is to apply the commit: Append it to the log and update all indices. Since the commit being applied was generated from the same basis value of the database, it is guaranteed that all consistency criteria are honored and that this call cannot produce an invalid database.
+\end{itemize}
+
+\paragraph{Derivation functions.}
+
+TODO
+
+\paragraph{Consistency constraints.}
+
+TODO
 
 
-\subsection{Bitemporality.}
+\paragraph{Indexing.} The four indices \lisp{:eavt}, \lisp{:aevt}, \lisp{:avet}, and \lisp{:vaet} are created by \emph{folding} over the reversed commit log. \Cref{lst:index_code} shows the entirety of the indexing logic. Transaction boundaries are irrelevant because creating the index is atomic anyways, so the reversed log is flattened before being passed to the fold. Updating an index happens after a commit is finalized, and has the fundamental property of being \emph{incremental}, meaning that to update an existing index, only the newest commit needs to be folded in with the existing index.
 
-TODO figure out
+The fold is implemented as a reducing function with the database value as its initial element, and with \lisp{index} as its combining function, thus folding one commit into the index at a time. The \lisp{index} function destructures each element of the commit vector into its sub-elements, and decides the updating function to use based on whether it is an assertion (then associate \lisp{txe} along the index path given by \lisp{e a v}) or a retraction (then dissociate). This is why building the index needs to happen in reverse order of the log.
 
-ivtt vs tx?
+\begin{lstlisting}[label={lst:index_code},morekeywords={:eavt,:avet,:aevt,:vaet,flatten,def,assoc-in,dissoc-in},caption=Updating the index]
+(def$\lambda$ index [db [e a v op txe]]
+  (update db :index
+    ($\lambda$ [index]
+      (let [index-in (case op
+                       :+ #(assoc-in %1 %2 txe)
+                       :- dissoc-in)]
+        ($\rightarrow$ index
+          (index-in [:eavt e a v])
+          (index-in [:aevt a e v])
+          (index-in [:avet a v e])
+          (index-in [:vaet v a e]))))))
 
-IVTT valid time trees \cite{nascimento1995ivtt}
+(def$\lambda$ create-index [db]
+  (reduce index db
+    (flatten (reverse (:log db)))))
 
-TX layered [Rubinstein?]
+(def$\lambda$ update-index [db commit]
+  (reduce index db commit))
+\end{lstlisting}
 
-as-of
-since
-as-if
+Listing \ref{lst:indexing_example_result} shows the resulting index structures after applying the commit to the database. Note that the retracted fact is not part of the index anymore, it is only accessible by scanning the structured commit log.
+
+\begin{lstlisting}[label={lst:indexing_example_result}]
+{:index
+  {:eavt {:patient/91 {:name {"Hye-mi" :txe/1}}
+          :txe/1 {:$t_x$ {$t_x$ :txe/1}}}
+   :aevt {:name {:patient/91 {"Hye-mi" :txe/1}}
+          :$t_x$ {:patient/91 {$t_x$ :txe/1}}}
+   :avet {:name {"Hye-mi" {:patient/91 :txe/1}}
+          :$t_x$ {$t_x$ {:txe/1 :txe/1}}}
+   :vaet {"Hye-mi" {:$t_x$ {$t_x$ :txe/1}}
+          $t_x$ {:$t_x$ {:txe/1 :txe/1}}}}}
+\end{lstlisting}
 
 
-\subsection{Pattern matching query engine}
+
+
+\subsection{Publishing and subscribing}
+
+TODO
+
+server offers publication: a fn taking optional client supplied parameters and returning a query data structure. may be arbitrarily timed.
+
+clients send request to subscribe to a publication, optionally giving parameters
+
+server runs publication function which may also perform authorization and gets a fully parameterized query returned.
+
+the query is then added to and adds it to
+
+server keeps all of a client's queries in memory.
+
+completely separate server side tuple dataset for each client.
+
+TODO: how to deregister clients?
+
+TODO should all subscriptions have a (ordered?) uuid?
+
+
+
+\subsection{Querying}
 
 The query engine is implemented as a completely separate and optional library.
 
 \paragraph{Step 1: Filter the log by time}
 depending on the query's time modifier medatata
 (as-of, as-at)
+
+as-of
+since
+as-if
+
 
 \paragraph{Step 2: Build a filtering sieve triple}
 
@@ -95,13 +253,13 @@ The lvar that appears in each clause at the same position is the joining variabl
 
 \begin{table}
   \label{tbl:lvartoindex}
-  \caption{Mapping of joining variable position to query index \cite{rubin15aosadb}}
+  \caption{Mapping of joining variable position to query index, slightly adapted from \cite{rubin15aosadb}}
   \begin{tabular}{|r|c|l|}
     \hline
     query clause & joining variable operates on & index to use \\ \hline
-    \lisp{[?e :a :v]} & entity & \lisp{:avet} \\ \hline
-    \lisp{[:e ?a :v]} & attribute & \lisp{:veat} \\ \hline
     \lisp{[:e :a ?v]} & value & \lisp{:eavt} \\ \hline
+    \lisp{[:e ?a :v]} & attribute & \lisp{:vaet} \\ \hline
+    \lisp{[?e :a :v]} & entity & \lisp{:avet} \\ \hline
     \end{tabular}
 \end{table}
 
@@ -112,23 +270,3 @@ According to the query design goals, the order of the query clauses have no sema
 
 
 \paragraph{Step 5: Unification of result tuples with the query clause}
-
-
-
-\subsection{Distribution and replication}
-
-server offers publication: a fn taking optional client supplied parameters and returning a query data structure. may be arbitrarily timed.
-
-clients send request to subscribe to a publication, optionally giving parameters
-
-server runs publication function which may also perform authorization and gets a fully parameterized query returned.
-
-the query is then added to and adds it to
-
-server keeps all of a client's queries in memory.
-
-completely separate server side tuple dataset for each client.
-
-TODO: how to deregister clients?
-
-TODO should all subscriptions have a (ordered?) uuid?

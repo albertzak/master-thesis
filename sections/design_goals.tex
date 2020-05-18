@@ -1,18 +1,8 @@
 \subsection{Goals}
 
-a flexible \emph{data layer} for small to medium size internal business applications for distributed collaboration in near-realtime.
-out of the author's experience running a SaaS business designing, developing, and operating a
-why no there are many special purpose dbs, mostly for performance.
-but none optimized for "data just being there when you need it"
+A flexible \emph{data layer} for small to medium size internal business applications for distributed collaboration in near real time, optimized for developer productivity but still backed by relational guarantees.
 
-with least amount of code. but still backed by relational guarantees (acid)
-
-needs different kind of db.
-needs reinvention of the whole data layer.
-
-
-
-To reduce some of the complexities in question, moseley and Marks recommend adopting functional and declarative programming constructs, along with a fully relational data model \cite{tarpit}.
+To reduce some of the complexities in question, \cite{tarpit} recommend adopting functional and declarative programming constructs, along with a fully relational data model.
 
 \paragraph{Streaming relational queries.}
 Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_rest}. What is needed for rich interactions is a different model of streaming queries for data in motion: What is "just there" is not the data, but the query — which is \emph{instantiated in the network}, and the data flows through the query instead of the other way around. \autoref{lst:querying_data_in_motion} gives an example of a streaming query.
@@ -25,40 +15,30 @@ Recall the querying semantics for data at rest in \autoref{lst:querying_data_at_
 \end{lstlisting}
 
 
-
-
-\paragraph{Notion of memory.}
-with strict auditability (log+queryable past)
-free auditing of everything, time travel
-"save everything", query later
-6NF EAV "Event Sourcing" Data Model w/ Explicit Time and Memory: "History of structured Facts"
-
-\paragraph{Transactional guarantees.}
-Transactions (ACID)
-
+\paragraph{Notion of memory.} The requirement of strict auditability of \emph{everything} implies keeping a queryable history of structured facts. An event sourced data model with explicit time and memory based on an accretion of facts fits this requirement. Especially when structured in 6NF/EAV, their combination affords a "save everything, query later" way of thinking by being access path independent.
 
 \paragraph{Adaptivity and dynamism.}
-schemaless
+TODO schemaless
+
+
+\paragraph{Transactional guarantees.}
+TODO Transactions (ACID)
 
 
 \paragraph{Distribution.}
-The handling of data between clients and servers should be as declarative as possible: Clients declare what data they are interested in, and the infrastrucutre takes care of fetching, caching, handling updates, unsubscribe
-
-Isomorphic + Homoiconic: Single Language: ClojureScript on Lumo/Browser
+The handling of data between clients and servers should be as declarative as possible: Clients declare what data they are interested in, and the infrastructure takes care of fetching, caching, handling updates, and managing the lifecycle of the subscription. The same infrastructure must be written in a way such that it is able to run on servers, web browsers and mobile devices with no modification.
 
 
-
-
-`'\subsection{Non-goals}\label{sec:nongoals}
+\subsection{Non-goals}\label{sec:nongoals}
 
 
 \paragraph{Efficiency.}
 No attention is paid to the efficiency of compute and memory usage. Tradeoffs are almost always made in favor of clarity concerning the mapping between conceptual model and implementation of the proof of concept. The only major optimization is the fact that the triple index structure exists, leastwise it doubles as the simplest possible way to access arbitrary data without the overhead of parsing and executing a query.
 
-Custom indexing strategies, e.g. ways to maintain a phonetic index to query for people's names, do not need to be part of the database design, because the triple indexing scheme is general enough to allow arbitrary access to the data in a manner that is efficient enough without having to declare indices upfront.
+Custom indexing strategies, e.g. ways to maintain a phonetic index to query for people's names, do not need to be part of the database design, because the triple indexing scheme combined with the ability to derive facts (explained in \autoref{sec:implementation}) is general enough to allow arbitrary access to the data in an efficient-enough manner without having to declare indices upfront.
 
 \paragraph{First class bitemporality.}
-Another non-goal is the efficiency, primacy, and expressive power of the provided bitemporal affordances. A vast amount of previous work exists on relatively complex attempts to add efficient bitemporal semantics to relational databases \cite{snodgrass1996adding,jensen1999temporal,kulkarni2012temporal} notably for use in bitemporal constraints \cite{doucet1997using} or within complex queries, and of bitemporality as a first class concept in production rule systems \cite{aref2015design}. Bitemporality in the described system is only secondary. Access paths are optimized for the most recent view of the data, while bitemporality is meant to be used for infrequent auditing purposes. There is no bitemporal index, consequently issuing queries with temporal modifiers causes a sequential scan of the log.
+Another non-goal is the efficiency, primacy, and expressive power of the provided bitemporal affordances. A vast amount of previous work exists on relatively complex attempts to add efficient bitemporal semantics to relational databases \cite{snodgrass1996adding,jensen1999temporal,kulkarni2012temporal} notably for use in bitemporal constraints \cite{doucet1997using} or within complex queries, and of bitemporality as a concept in production rule systems \cite{aref2015design}. Bitemporality in the described system is only secondary. Access paths are optimized for the most recent view of the data, while bitemporality is meant to be used for infrequent auditing purposes. There is no bitemporal index, consequently issuing queries with temporal modifiers is allowed to cause a sequential scan of the log.
 
 \paragraph{Standard protocols.}
 Lastly, the design explicitly avoids compliance with existing proliferated standards around the handling of data such as SQL, \gls{XML}, \gls{JSON}, \gls{REST}, etc. to instead allow quick exploration into different paradigms unburdened by past decisions.

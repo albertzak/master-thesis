@@ -3,11 +3,11 @@
 
 \input{sections/design_problems}
 \input{sections/design_goals}
-\input{sections/design_tenets}
 
 
-\subsection{Conceptual model}
+\subsection{Conceptual model}\label{sec:conceptual_model}
 
+TODO
 
 \begin{itemize}
   \item A fact is a triple \lisp{[e a v]}
@@ -21,6 +21,28 @@
   \item The database is fully described by the log.
 
 \end{itemize}
+
+\subsection{Indexing}
+
+TODO
+
+Commonly used index sort orders in EAV systems and their strengths are compared in \autoref{tbl:indices}.
+
+\newcolumntype{s}{>{\hsize=.5\hsize}X}
+
+\begin{table}[]
+  \label{tbl:indices}
+  \caption{Impact of the index sort order on the area of application}
+  \begin{tabularx}{\textwidth}{|l|s|s|X|}
+  \hline
+  \textbf{index} & \textbf{name}               & \textbf{feels like}      & \textbf{good for}                                     \\ \hline
+  \lisp{:eavt}          & "entity-oriented"           & document store           & accessing various attributes of a known entity        \\ \hline
+  \lisp{:aevt}          & "attribute-entity-oriented" & column store             & accessing the same attribute of various entities      \\ \hline
+  \lisp{:avet}          & "attribute-value-oriented"  & filtering a column store & finding entities by the value of a specific attribute \\ \hline
+  \lisp{:vaet}          & "value-oriented"            & searching everything     & searching over all values, regardless of attribute    \\ \hline
+  \end{tabularx}
+\end{table}
+
 
 
 \subsection{Query language}
@@ -48,9 +70,9 @@ As the query function simply takes a database as a \emph{value}, a \emph{filteri
 
 \begin{lstlisting}[label={lst:queryfilter},caption=Applying a temporal filter before querying,morekeywords={keep,q,<,>}]
   (q (keep
-       ($\lambda$ [tx tv]
-         (and (> tv 300) (< tv 500)
-              (< tx 700)))
+       ($\lambda$ [$t_x$ $t_v$]
+         (and (> $t_v$ 300) (< $t_v$ 500)
+              (< $t_x$ 700)))
        db) query)
   \end{lstlisting}
 

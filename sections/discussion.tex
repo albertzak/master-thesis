@@ -5,72 +5,46 @@ The following two subsections qualitatively review the contribution with respect
 
 \subsection{Advantages}
 
-minimal loc shows expressive power of language
+\paragraph{Expressive power.} The minimal code size shows the expressive power of the language and its standard library of immutable data structures.
 
-pluggable transport
+\paragraph{Database as a value.} Being able to treat the entire database as an immutable value which can be passed around the program and queried locally is a powerful affordance which slashes incidental complexity.
 
-free indexing
+\paragraph{Strong auditability.} Accreting assertions and retractions of facts in an immutable log gives complete auditability of all changes with no programmatic overhead.
 
-immutability and db-as-value
+\paragraph{Flexible data model.} Attribute-oriented data models can represent sparse data much more efficiently than traditional RDBMS, at the cost of frequent joins \cite{gobel2019optimising}. Together with first class transactions and a notion of memory over time, EAV+$t_x$+$t_v$ appears to be a promising data model for complex domains.
 
-\paragraph{Flexible data model.} Representing data as fully-normalized fact triples allows
+\paragraph{Simple bitemporality.} Relaxing requirements of e.g. complex temporal queries and instead focusing on auditability yields a simple yet useful design. The system defers answering hard questions about e.g. the handling of future-dated facts and efficient bitemporal indexing as they are not a core concern.
 
-\paragraph{Auditability.} Accreting all facts in an immutable log gives complete auditability with no programmatic overhead.
-
-
-
-\paragraph{}
-In a traditional, row-oriented data model, modeling such data leads to wide, sparse tuples. Attribute-oriented data models can represent such data much more efficiently, and materialize only necessary attributes, at the cost of frequent multi-way joins across relations \cite{gobel2019optimising}.
-
-
-\paragraph{Simple, yet useful bitemporality.}
-problem: back dated changes. should we allow future dated changes? -- leaning towards no? or ignore? or cut off at "now" by default? we just defer answering this question as not a core concern of this poc
-
-\paragraph{Library, not a framework.} Thinking of j
+\paragraph{Library, not a framework.} Apart from enforcing data to be fully denormalized, the presented design places no boundaries on miscellaneous concerns or structure of the embedding application. A developer is free to compose this "data layer as a library" with any other libraries or frameworks as they see fit.
 
 \paragraph{Easily extensible.} Customizing the behavior of the database is simple, as exemplified by the implementation of the \lisp{document} function which allows atomic ingestion of multiple facts related to an entity as arbitrarily nested documents. Another example would be the client side use of a single database to store both local \gls{UI} state and "global" facts from the server, the only change necessary is to filter out attributes with a \lisp{:local} namespace before transacting the change to the server.
 
 
+
 \subsection{Limitations}
 
+\paragraph{Query engine.} No negation, no aggregations, no pull, no multi-way joins, no destructuring -- the minimalist implementation of the query language presented in this thesis does not warrant comparison to a proper Datalog.
 
-\paragraph{Datalog semantics.}
+\paragraph{No schema.} Determining if fact was superseded needs upfront specification of cardinality. A production system would need to define a schema and at least enforce cardinalities on each attribute, i.e. the number of values that can be considered "current" for an attribute, e.g. that a person can have \emph{many} phone numbers but only \emph{one} birthdate.
 
+\paragraph{Coupled storage.} The design of the storage layer makes no provisions for offloading responsibilities to a generic storage backend or even durable persistence via local disks.
 
-\paragraph{Query library.}
+\paragraph{Coupled transactor.} Splitting out the transactor component as in Datomic, with the goal of increasing availability in a failover configuration, is not possible in this design.
 
-a dynamic that favours those building new systems as opposed to those that maintain or steward large existing systems.
+\paragraph{Explicit subscriptions.} Clients have to explicitly subscribe and manage the lifecycle of available publications, which requires duplicate, imperative, and error-prone programming effort. Another limitation of the implementation is that a client can only be subscribed to one query at a time.
 
-\paragraph{Set vs. multiset semantics.}
--- determining if fact was superseded needs upfront specification of cardinality for field.
--- TODO does it make sense to default to cardinality one?
-set vs multiset semantics -- leaning towards set on insertion, multiset on querying
+\paragraph{Time-aware queries.} A complex query might want to mix different timelines in single query, e.g. join previous values with current values. This is not possible in the simplistic presented design. Datalog, however, has been extended with temporal semantics in various works \cite{alvaro2010dedalus, aref2015design}.
 
+\paragraph{Stand-alone queries.} The query engine provides no means for abstracting and composing fragments of queries in a \emph{hygienic} way so that expected lexical scoping semantics of logic variables are observed.
 
-\paragraph{No temporal constraints.} temporal and general constraints
+\paragraph{Dynamic typing.} During implementation and refactoring of the prototype, a clear majority of bugs were caused by a mismatch of expected vs. actual structure of data types being passed around. While the highly dynamic nature of the language enables extremely quick experimentation, a small number of functions would have benefitted from a lightweight layer of gradual typing, as afforded by e.g. \lisp{clojure.spec} \cite{pinzaru2019towards}.
 
-\paragraph{Privacy regulations.} Excision
-
-\paragraph{Access control.} what do do when roles change?
-
-\paragraph{Latency compensation.} Optimistic updates
-
-\paragraph{Safe abstraction and composition of queries.} Currently, the query engine provides no means for abstracting and composing fragments of queries (called "rules" in Datomic) in a \emph{hygienic} way, i.e. so that expected lexical scoping semantics of logic variables are observed.
-
-\paragraph{Coupled storage.} The design of the storage layer currently makes no provisions for an offloading of responsibilities to a generic storage backend as in Datomic.
-
-\paragraph{Coupled transactor.} Splitting out the transactor component as in Datomic, with the goal of increasing availability in a failover configuration, is not possible in the current design.
-
-\paragraph{Explicit subscriptions.} Clients have to explicitly subscribe and manage the lifecycle of available publications, which requires duplicate, imperative, and error-prone programming effort.
-
-\paragraph{Expensive re-indexing.} Whenever \emph{novelty} (assertions or retractions of facts) arrives, the index is rebuilt in a blocking fashion. The database should at least allow accumulation of \emph{some} novelty, and allow queries to leverage a combination of the (stale) sorted indices together with the linear accumulation of novelty to produce results before novelty is indexed.
-
-\paragraph{No real bitemporal queries.} A complex query might want to mix different timelines in single query, e.g. join previous values with current values.
-
-\paragraph{Incompatibility with proliferated standards.} Simultaneously changing the data model, its representation and storage formats, the interfaces and protocols, query languages and semantics requires doing away with
+\paragraph{Incompatibility.} Simultaneously changing the data model, its representation and storage formats, the interfaces and protocols, query languages and semantics requires doing away with proliferated standards, decades of established research, and proven implementations of the real world.
 
 \paragraph{Switching costs.} Since persistence of data is fundamental to any application, changes to the data layer of existing systems are prohibitively expensive. Yet, the same dynamic proves advantageous in green field projects unencumbered by legacy decisions.
 
-\paragraph{Open vs. closed system.} Incidental complexity within a closed system such as the one described in this work can be managed to stay at a minimal level because any outside components the system is interacting with is forced to adapt to the system's way. However, users of such a system eventually want to connect it to other things. Inevitably, doing so \emph{imports} some of the incidental complexities of those systems. It remains to be seen if we can build open systems without importing accidental complexity \cite{moffat16eve}.
+\paragraph{Privacy regulations.} No production system can be deployed without a way to permanently erase personal data. The concept of \emph{excision} as in Datomic, or the use of two separate data storage components with only hashes being written to immutable logs as in Crux present clean ways around this issue.
+
+\paragraph{Open vs. closed system.} Incidental complexity within a closed system such as the one described in this work can be managed to stay at a minimal level because any outside components the system is interacting with is forced to adapt to the system's way. However, users of such a system eventually want to connect it to other things. Inevitably, doing so \emph{imports} some of the incidental complexities of those systems. It remains to be seen if open systems can be built without importing accidental complexity \cite{moffat16eve}.
 
 \paragraph{Second system effect.} This work is the author's second attempt dealing with the problems of data layers for business applications. Brooks observed the tendency of successful systems to be succeeded by over-engineered, bloated systems, due to inflated expectations and overconfidence of the authors \cite{brooks1995mythical}.

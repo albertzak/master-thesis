@@ -82,19 +82,23 @@
   numberstyle=\small\color{lightgray},
   basicstyle=\ttfamily,
   captionpos=b,
-  frame=tb,
+  keepspaces,
+  frame=0,
   extendedchars=true,
   firstnumber=0,
-  stepnumber=5,
-  xtopmargin=5pt,
-  xbottommargin=5pt,
-  xleftmargin=17pt,
-  framextopmargin=5pt,
-  framexleftmargin=17pt,
-  framexrightmargin=5pt,
-  framexbottommargin=5pt,
+  stepnumber=50,
+  % topmargin=15pt,
+  % bottommargin=15pt,
+  % xtopmargin=15pt,
+  % xbottommargin=15pt,
+  % xleftmargin=17pt,
+  % framextopmargin=10pt,
+  % framexleftmargin=10pt,
+  % framexrightmargin=10pt,
+  % framexbottommargin=10pt,
   inputencoding=utf8,
-  mathescape=true
+  mathescape=true,
+  abovecaptionskip=10pt
 }
 % Hide number in first line of code listings
 \makeatletter
@@ -102,7 +106,7 @@
   \rlap{\normalfont\kern\linewidth \kern\lst@numbersep\lst@numberstyle{\thelstnumber}}\fi}
 \makeatother
 
-\newcommand{\lisp}[1]{\lstinline$#1$}
+\newcommand{\lisp}[1]{\lstinline|#1|}
 
 \pdfpageheight=297mm
 \pdfpagewidth=210mm
