@@ -6,11 +6,11 @@
 \paragraph{\gls{RAD}.} Scaling developer productivity as the team size goes $n \to 1$ on data-intensive near real time collaborative line-of-business applications goes back to the \gls{RAD} movement of the 1990s sparked by tools such as the Delphi suite \cite{mackay2000reconfiguring}, PowerBuilder \cite{zubeck1997implementing}, Lotus Notes \cite{zubeck1997implementing}, and FileMaker
 \cite{chen2010developing}.
 
-\paragraph{MUMPS.} On the aspects of near real time state synchronization combined with RAD tooling, a notable mention is the \gls{MUMPS} \cite{bowie1979methods} dating back to the year 1966. An extremely terse programming language combined with a runtime system featuring built-in persistence mechanisms. This "global database" is a subscripted array which replicates \emph{code and data} across machines in near real time. Major hospitals and financial institutions continue to run their daily operational workloads on various evolutions of MUMPS systems today \cite{aller2018evolution}.
+\paragraph{MUMPS.} On the aspects of near real time state synchronization combined with RAD tooling, a notable mention is the \gls{MUMPS} \cite{bowie1979methods} dating back to the year 1966. An extremely terse programming language combined with a runtime system featuring built-in persistence mechanisms. Its "global database" is a subscripted array which replicates and persists \emph{code and data} across machines in near real time. Major hospitals and financial institutions continue to run their daily operational workloads on various evolutions of MUMPS systems today \cite{aller2018evolution}.
 
 \paragraph{Firebase and Parse.} These services brought real time state synchronization to web and mobile applications starting in 2011. Firebase is a proprietary managed service operated by Google. Its data model is based on a global mutable structure in \gls{JSON} and allows only rather simplistic filtering and navigational queries. Parse was a similar real time Backend-as-a-Service based on MongoDB and Redis which was active from 2011 to 2017. \cite{wingerath2019real}
 
-\paragraph{Meteor.} This thesis is an evolution based on the author's experience running a \gls{SaaS} business built on the open source Meteor \cite{schmidt2014live} framework and the \gls{DDP} \cite{ddpspec} released in 2012. Meteor allows clients to transparently subscribe to the results of predefined MongoDB queries updating live over arbitrary durations. Synchronization is achieved by the server watching the operations log of the database (called "oplog tailing") \cite{wingerath2019real}, keeping track of the documents and queries of each connected client, and computing delta changes to send back to the client. See \autoref{tbl:dbcomparison} for a comparison of Meteor with other data management approaches.
+\paragraph{Meteor.} This thesis is an evolution based on the author's experience running a \gls{SaaS} business built on the open source Meteor \cite{schmidt2014live} framework and the \gls{DDP} \cite{ddpspec} released in 2012. Meteor allows clients to transparently subscribe to the results of predefined MongoDB queries updating live over arbitrary durations. Synchronization is achieved by the server watching the operations log of the database (called "oplog tailing") \cite{wingerath2019real}, keeping track of the documents and queries of each connected client, and computing delta changes to send back to the client. See table \ref{tbl:dbcomparison} for a comparison of Meteor with other data management approaches.
 
 Clients cache the received documents in a local instance of MongoDB implemented in JavaScript (called Minimongo), enabling arbitrary local queries with no latency. Combined with a functional-reactive view library such as React to bind the management of a view's lifecycle with its data subscriptions, this setup gives the impression of data "just being here" on the client with almost no programmatic overhead.
 
@@ -20,7 +20,7 @@ Other databases which allow subscribing to the result set of a query include RxD
 
 \begin{table}[]
   \label{tbl:dbcomparison}
-  \caption{Comparison Meteor with other database and stream processing systems \cite{wingerathcase}}
+  \caption{Comparison of Meteor with other database and stream processing systems \cite{wingerathcase}}
   \begin{tabular}{r|c|c|c|c|}
     \cline{2-5}
                                               & \textbf{DBMS}                                                & \textbf{\begin{tabular}[c]{@{}c@{}}Real-time\\ database\end{tabular}}            & \textbf{\begin{tabular}[c]{@{}c@{}}Data stream\\ management\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}Stream\\ processing\end{tabular}}     \\ \hline
@@ -34,7 +34,7 @@ Other databases which allow subscribing to the result set of a query include RxD
 
 
 
-\paragraph{Datomic.} Most of the design tenets for the project described in \autoref{sec:tenets} originate from the database Datomic \cite{hickey2012dbvalue} which was created by the author of the Clojure programming language in 2012. Its data model is a monotemporal (transaction time \gls{tx} only) and immutable log of assertions and retractions of EAV facts, with first-class transactions being reified as regular queryable facts themselves. Datomic requires a minimal schema to be specified upfront.
+\paragraph{Datomic.} Most of the design tenets for the project described in section~\ref{sec:tenets} originate from the database Datomic \cite{hickey2012dbvalue} which was created by the author of the Clojure programming language in 2012. Its data model is a monotemporal (transaction time \gls{tx} only) and immutable log of assertions and retractions of EAV facts, with first-class transactions being reified as regular queryable facts themselves. Datomic requires a minimal schema to be specified upfront.
 
 Instead of thinking of the database as a single \emph{place} to send queries to and receive tuples from, Datomic separates its components as follows to achieve horizontal read scalability, turning the classical model of a database "inside out" \cite{kleppmann2017designing}:
 \begin{itemize}
@@ -54,7 +54,7 @@ Mozilla Mentat \cite{mozillamentat} was an attempt at a performant embeddable im
 
 Eva \cite{eva} is an open source monotemporal EAV database very similar to and compatible with the \gls{API} of Datomic, though the project appears to be abandoned in a feature-complete "alpha" quality stage.
 
-Ittyon \cite{ittyon} is a Clojure library to manage distributed state in games based on ideas from Entity-Component Systems (ECS) combined with the EAV+$t_x$ data model. Its client/server architecture via \emph{channels} inspired the implementation of the prototype described in \autoref{sec:implementation}.
+Ittyon \cite{ittyon} is a Clojure library to manage distributed state in games based on ideas from Entity-Component Systems (ECS) combined with the EAV+$t_x$ data model. Its client/server architecture via \emph{channels} inspired the implementation of the prototype described in section~\ref{sec:implementation}.
 
 \paragraph{LogicBlox.} A notable proprietary commercial RAD self-serve database system with an integrated programming language based on Datalog, LogicBlox \cite{aref2015design} similarly aims to reduce incidental complexity of developing line-of-business applications with a focus on probabilistic and predictive analytics of large business data sets. Its developers have contributed a novel efficient algorithm for incremental view maintenance for Datalog systems \cite{veldhuizen2012leapfrog}.
 

@@ -1,21 +1,19 @@
 \subsection{Problems}
-With the shift to data-intensive \gls{SPA} (clients act as limited database peers)
-Data-intensive applications
-Clients become limited peers.
-Requirements of real time collaboration, declarative security, auditability of changes, evolution of the schema, and analytics push the limit of established request-response mechanisms.
+
+Traditional RDBMSs enforce a structural rigidity of fitting data into "tables", "rows", and "columns", entailing a lack of flexibility in dealing with sparse data, irregular data, hierarchies, or multi-valued attributes \cite{hickey2012dbvalue}. With the shift to data-intensive Single-Page Applications (SPAs), clients become limited peers to the database. Requirements of real time collaboration, evolution of the schema, and auditability of changes, together with limited request-response data loading mechanisms work together to increase the incidental complexity of application code.
 
 
 \paragraph{\gls{SQL}.}
 Despite the widespread use of SQL, it is not, in any version, an accurate reflection of the relational model \cite{codd1990relational} \cite{tarpit}.
 Modeling domains in common \gls{RDBMS} requires distinguishing between entity and relationship \cite{chen1976entity}. A system in which choosing the structure for the data involves setting up "routes" between data instances (such as from a particular employee to a particular department) is access path dependent. A pure relational systems would need no problematic distinction between entity and relationship \cite{tarpit}.
 
-Traditional RDBMSs enforce a structural rigidity of fitting data into "tables", "rows", and "columns", entailing a lack of flexibility in dealing with sparse data, irregular data, hierarchies, or multi-valued attributes \cite{hickey2012dbvalue}. Finally, SQL as a query language when embedded into the application's main programming language is usually treated as a second class citizen by resorting to concatenation of strings with a thin layer of sanitization. (Microsoft's LINQ \cite{meijer2006linq} is a notable exception.) Features such as materialized views are cumbersome to use because the language lacks powerful means of abstraction and composition \cite{sicp} which would enable recursively composing complex queries out of smaller queries.
+SQL within the application's main programming language is usually treated as a second class citizen by resorting to concatenation of strings with a thin layer of sanitization. (Microsoft's LINQ \cite{meijer2006linq} is a notable exception.) Features such as materialized views are cumbersome to use because the language lacks powerful means of abstraction and composition \cite{sicp} which would enable recursively composing complex queries out of smaller queries.
 
 \paragraph{Object-relational mismatch.}
 \gls{ORM} of tuples from the database onto whichever data types are available in the backend programming languages, and increasingly also to the language in the front end in \gls{SPA}, as well as the choice of appropriate communication interfaces between at least three layers pose additional considerations. Duplicating structure in schema definitions and again in ORM code leads to a proliferation of types.
 
 \paragraph{Time.}
-Temporal databases are commonly optimized for analytics performance over large numeric datasets, e.g. sensor readings over time. Temporal extensions to SQL \cite{kulkarni2012temporal} are convoluted and do not address the fundamental problem at hand, which is that typical mutable-state systems obscure the sequence of events that brought the world into the current state. The notion of a database as memory over time requires keeping an easily auditable log of records.
+Temporal databases are commonly optimized for analytics performance over large numeric datasets, e.g. sensor readings over time. Temporal extensions to SQL \cite{kulkarni2012temporal} are convoluted and do not address the fundamental problem at hand, which is that typical mutable-state systems obscure the sequence of events that brought the world into its current state.
 
 \paragraph{Distribution.}
 Thinking that data resides "over there" on a remote server breeds a "fear of round trips" and causes developers to accumulate incidental complexity in the form of performance optimizations related to caching \cite{hickey2012dbvalue}.
@@ -31,7 +29,7 @@ A middle-ground mixture of both styles is common, muddling the architectural wat
 
 
 \paragraph{Propagation of updates.}
-The traditional understanding of queries for data at rest as in \autoref{lst:querying_data_at_rest} is that data exists at the database in one place, and queries are passed over there, usually in the form of SQL strings, and unroll themselves into a dataflow tree of operators, pulling data up the tree when they reach the leaves \cite{alvaro2015isee}.
+The traditional understanding of queries for data at rest as in listing~\ref{lst:querying_data_at_rest} is that data exists at the database in one place, and queries are passed over there, usually in the form of SQL strings, and unroll themselves into a dataflow tree of operators, pulling data up the tree when they reach the leaves \cite{alvaro2015isee}.
 
 \begin{lstlisting}[label={lst:querying_data_at_rest},morekeywords={employees,departments},caption=Querying data at rest \cite{alvaro2015isee}]
 ($\Pi$ [:name :department]

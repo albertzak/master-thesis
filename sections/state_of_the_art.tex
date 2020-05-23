@@ -1,25 +1,30 @@
 \subsection{State of the art}\label{sec:sota}
 
-The system presented in this thesis builds on various ideas around programmatic handling of data and state in distributed information systems.
+The system presented in this thesis builds on various ideas around better ways of dealing with of data, state, and process in distributed information systems.
 
-\paragraph{Entity-attribute-value.}
+\paragraph{Entity-Attribute-Value (EAV).}
 
-The EAV data model is also known as \emph{open schema}, \emph{vertical database}, or \emph{long and skinny} \cite{jastrow2015entity} because in its most basic form, it is able to represent arbitrary data in a single table of just three columns (and many rows) by forcing normalization to the 6\textsuperscript{th} normal form (6NF). The model originated in medical record software \cite{huff1994help} and gained popularity through \emph{triple stores} of the Semantic Web and the Resource Description Framework (RDF). In domains where where the number of attributes related to an entity is large and modeling such data in a classical \gls{RDBMS} would require dealing with the overhead of defining and storing many columns, the EAV model provides an efficient and simple way to deal with sparse data. The namesake and basic unit of information in EAV systems is the \emph{fact}, which is a triple \lisp{[e a v]} consisting of:
+Representing information in \emph{attribute-value pairs} dates back to Lisp from the late 1950s \cite{mccarthy1960recursive}. Together with a value identifying the \emph{entity}, the EAV data model is able to represent arbitrary data in a single table of just three columns (and many rows) by forcing normalization to the 6\textsuperscript{th} normal form (6NF). The basic unit of information in EAV systems is the \emph{fact}, which is a triple \lisp{[e a v]} consisting of:
 
 \begin{enumerate}[nolistsep,label={(\roman*)}]
-  \item \lisp{e}, the value identifying the \emph{entity},
-  \item \lisp{a}, an \emph{attribute} value (also called \emph{aspect} in \gls{ECS}), and
+  \item \lisp{e}, a value identifying the \emph{entity} to which the fact is related,
+  \item \lisp{a}, an \emph{attribute} value, and
   \item \lisp{v}, the value itself.
 \end{enumerate}
 
-While all \emph{current} state of the system can be represented conceptually as in  \autoref{lst:examplefacts} as a single (long) sequence of facts, it would be useful to know exactly \emph{how} the system got into its current state.
+The EAV data model is also known as \emph{open schema}, or \emph{vertical database} \cite{jastrow2015entity}. Medical information systems TMR \cite{stead1983chartless} and HELP \cite{huff1994help} were the first to bring this way of knowledge representation to a clinical context in the 1970s.
 
-\begin{lstlisting}[label={lst:examplefacts},morekeywords={email-source,contacts-source},caption=A sequence of EAV facts]
+EAV later gained popularity through the Semantic Web and the Resource Description Framework (RDF) \cite{decker2000semantic} where facts are called object-attribute-value triplets. In domains where where the number of attributes related to an entity is large and modeling such data in a classical \gls{RDBMS} would require dealing with the overhead of defining and storing many columns, the EAV model provides an efficient and simple way to deal with sparse data.
+
+\begin{lstlisting}[label={lst:examplefacts},morekeywords={patient,name,room,building},caption=A sequence of EAV facts]
 [[:patient/91 :name "Hye-mi"]
  [:patient/91 :room :room/32]
  [:room/32 :building "A-12"]
  ...]
 \end{lstlisting}
+
+While all \emph{current} state of the system can be represented conceptually as in listing~\ref{lst:examplefacts} as a single (long) sequence of facts, it would be useful to know exactly \emph{how} the system got into its current state.
+
 
 \paragraph{Logs.} 16\textsuperscript{th} century seafarers invented the \emph{log} \cite{may1973historylog}. With a piece of wood -- the log -- attached to a string and thrown into the water, they could track its speed relative to the ship over time and record the measurements in a logbook, along with other events of interest \cite{kakkar19log}.
 
@@ -39,7 +44,7 @@ CQRS is an architectural separation of the read paths from the write paths. In t
 \cleardoublepage
 \paragraph{(Bi-)temporality.}
 
-When extending EAV databases and the idea of \gls{ES} with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events. \Smartref{lst:examplefactstx} shows a fact with a pointer to a \emph{transaction entity}, about which bitemporal and other transaction metadata exists as first-class facts. This example demonstrates that the patient was actually ($t_v$) moved to room #32 at 18:30, but the fact was recorded in the system ($t_x$) later at 21:12 by user #43 as part of transaction #4.
+When extending EAV databases and the idea of \gls{ES} with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events. Listing~\ref{lst:examplefactstx} shows a fact with a pointer to a \emph{transaction entity}, about which bitemporal and other transaction metadata exists as first-class facts. This example demonstrates that the patient was actually ($t_v$) moved to room #32 at 18:30, but the fact was recorded in the system ($t_x$) later at 21:12 by user #43 as part of transaction #4.
 
 \begin{lstlisting}[label={lst:examplefactstx},morekeywords={:tx-id/4},caption=Transaction metadata are first-class facts]
   [[:patient/91 :room :room/32 :txe/4]

@@ -31,7 +31,7 @@ The following two subsections qualitatively review the contribution with respect
 
 \paragraph{Coupled transactor.} Splitting out the transactor component as in Datomic, with the goal of increasing availability in a failover configuration, is not possible in this design.
 
-\paragraph{Explicit subscriptions.} Clients have to explicitly subscribe and manage the lifecycle of available publications, which requires duplicate, imperative, and error-prone programming effort. Another limitation of the implementation is that a client can only be subscribed to one query at a time.
+\paragraph{Limited subscriptions.} Clients have to explicitly subscribe and manage the lifecycle of available publications, which requires duplicate, imperative, and error-prone programming effort. Another limitation of the implementation is that a client can only be subscribed to one query at a time. The mechanism to notify clients of updated facts, being critical for security and privacy, was designed ad-hoc and has not been tested thoroughly.
 
 \paragraph{Time-aware queries.} A complex query might want to mix different timelines in single query, e.g. join previous values with current values. This is not possible in the simplistic presented design. Datalog, however, has been extended with temporal semantics in various works \cite{alvaro2010dedalus, aref2015design}.
 
