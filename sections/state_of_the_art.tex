@@ -9,12 +9,10 @@ Representing information in \emph{attribute-value pairs} dates back to Lisp from
 \begin{enumerate}[nolistsep,label={(\roman*)}]
   \item \lisp{e}, a value identifying the \emph{entity} to which the fact is related,
   \item \lisp{a}, an \emph{attribute} value, and
-  \item \lisp{v}, the value itself.
+  \item \lisp{v}, the \emph{value} itself.
 \end{enumerate}
 
-The EAV data model is also known as \emph{open schema}, or \emph{vertical database} \cite{jastrow2015entity}. Medical information systems TMR \cite{stead1983chartless} and HELP \cite{huff1994help} were the first to bring this way of knowledge representation to a clinical context in the 1970s.
-
-EAV later gained popularity through the Semantic Web and the Resource Description Framework (RDF) \cite{decker2000semantic} where facts are called object-attribute-value triplets. In domains where where the number of attributes related to an entity is large and modeling such data in a classical \gls{RDBMS} would require dealing with the overhead of defining and storing many columns, the EAV model provides an efficient and simple way to deal with sparse data.
+The EAV data model is also known as \emph{open schema}, or \emph{vertical database} \cite{jastrow2015entity}. Medical information systems TMR \cite{stead1983chartless} and HELP \cite{huff1994help} were the first to bring this way of knowledge representation to a clinical context in the 1970s. EAV later gained popularity through the Semantic Web and the Resource Description Framework (RDF) \cite{decker2000semantic} where facts are called object-attribute-value triplets. In domains where the number of attributes related to an entity is large and modeling such data in a classical \gls{RDBMS} would require dealing with the overhead of defining and storing many columns, the EAV model provides an efficient and simple way to deal with sparse data.
 
 \begin{lstlisting}[label={lst:examplefacts},morekeywords={patient,name,room,building},caption=A sequence of EAV facts]
 [[:patient/91 :name "Hye-mi"]
@@ -28,14 +26,14 @@ While all \emph{current} state of the system can be represented conceptually as 
 
 \paragraph{Logs.} 16\textsuperscript{th} century seafarers invented the \emph{log} \cite{may1973historylog}. With a piece of wood -- the log -- attached to a string and thrown into the water, they could track its speed relative to the ship over time and record the measurements in a logbook, along with other events of interest \cite{kakkar19log}.
 
-In data-intensive applications, the log is today often treated as a side product of mutating central state in a database, to aid in understanding situations after something has gone wrong. However, ideas such as Event Sourcing (ES) have reversed the roles of log and database and dictate that state is inferred from an accretion of events.
+In data-intensive applications, the log is today often treated as a side product of mutating central state in a database, to aid in understanding situations after something has gone wrong. However, ideas such as \gls{ES} have reversed the roles of log and database and dictate that state is inferred from an accretion of events.
 
 \cleardoublepage
 \paragraph{Event Sourcing.} Systems which derive their state by consuming an ordered sequence of events are called \emph{event sourced}. In practice, event sourcing is commonly associated with, and used in conjunction with \gls{DDD} \cite{evans2004domain} and the architectural pattern of \gls{CQRS} \cite{kabbedijk2012case}.
 
 DDD tends to be employed in domains where the shape of the data is mostly known in advance and generally remains rather static over the lifetime of the system, because domain events are generally tied to the code because they are modeled as classes closed for modification.
 
-CQRS is an architectural separation of the read paths from the write paths. In the case of classic event sourcing, this implies that when new data comes in as part of an event, the event is first appended to the global log. Afterwards, one or more materialized views (in a regular RDBMS) are updated from which the application finally performs its reads, as reading from  the unwieldy log directly would be inefficient and complicated.
+CQRS is an architectural separation of the read paths from the write paths. In the case of classic event sourcing, this implies that when new data comes in as part of an event, the event is first appended to the global log. Afterwards, one or more materialized views (in a regular RDBMS) are updated from which the application finally performs its reads, as reading from  the unwieldy log directly would be inefficient and complicated, yet such a decoupling of concerns begets additional complexity in application code because read-after-write consistency is not guaranteed.
 
 \paragraph{Immutability.} Tying these ideas together with the EAV data model yields an event sourced database, where events are the most granular write operations on each field, akin to the transaction log of a classical database. To better convey the immutability of the log, the terms \emph{assertion} and \emph{retraction} are used in place of creation and deletion. To change a fact, one issues a transaction which simultaneously retracts the previous value and asserts the new one. An immutable EAV database consequently is the accretion of assertions and retractions of facts over time.
 
@@ -44,7 +42,7 @@ CQRS is an architectural separation of the read paths from the write paths. In t
 \cleardoublepage
 \paragraph{(Bi-)temporality.}
 
-When extending EAV databases and the idea of \gls{ES} with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events. Listing~\ref{lst:examplefactstx} shows a fact with a pointer to a \emph{transaction entity}, about which bitemporal and other transaction metadata exists as first-class facts. This example demonstrates that the patient was actually ($t_v$) moved to room #32 at 18:30, but the fact was recorded in the system ($t_x$) later at 21:12 by user #43 as part of transaction #4.
+When extending EAV databases and the idea of \gls{ES} with a first-class concept of time and/or transactions, such systems are sometimes referred to using the ambiguous abbreviation \emph{EAVT}, with the \emph{T} variously referring to either the addition of transaction time, valid time or other \emph{domain time} values (or a combination thereof) \cite{huser2013desiderata} or the \emph{T} may hint at the concept of first-class transactions, where a fact additionally carries the entity ID of its originating transaction to allow attaching arbitrary metadata to events. Listing~\ref{lst:examplefactstx} shows a fact with a pointer to a \emph{transaction entity}, about which bitemporal and other transaction metadata exists as first-class facts. This example demonstrates that the patient was actually ($t_v$) moved to room \#32 at 18:30, but the fact was recorded in the system ($t_x$) later at 21:12 by user \#43 as part of transaction \#4.
 
 \begin{lstlisting}[label={lst:examplefactstx},morekeywords={:tx-id/4},caption=Transaction metadata are first-class facts]
   [[:patient/91 :room :room/32 :txe/4]
@@ -54,7 +52,7 @@ When extending EAV databases and the idea of \gls{ES} with a first-class concept
    ...]
   \end{lstlisting}
 
-While uni- or monotemporal databases allow querying along the transactional sequence of historic database states (called \gls{tx}), support for bitemporality adds another separate time axis \gls{tv}, meaning the time at which the fact came into existence in the \emph{context} of the system. Note the there is no limit on the storage of arbitrary additional time-related facts related to an entity or a first-class transaction, which are referred to as \emph{domain time}. A (bi-)temporal database only provides efficient and convenient indexing and query capabilities for $t_x$ and $t_v$ values. Users querying for any other values, including domain time, must use the general querying mechanisms.
+While uni- or monotemporal databases allow querying along the transactional sequence of historic database states (called \gls{tx}), support for bitemporality adds another separate time axis \gls{tv} denoting the time at which the fact came into existence in the wider \emph{context} of the system. Note the there is no limit on the storage of arbitrary additional time-related facts related to an entity or a first-class transaction, the collection of which are referred to as \emph{domain time} facts. A (bi-)temporal database only provides efficient and convenient indexing and query capabilities for $t_x$ and $t_v$ values. Users querying for any other values -- including domain time -- must use the general querying mechanisms.
 
 \paragraph{\gls{FRP}.}
 Originally conceived to describe graphical animations \cite{elliott1997functional}, the FRP paradigm applies nicely to distributed data-intensive systems where it yields composable building blocks which are relatively easy to reason about \cite{reynders2014multi}.
@@ -62,3 +60,9 @@ Originally conceived to describe graphical animations \cite{elliott1997functiona
 FRP fits particularly well inside the view layer of a \gls{SPA} to construct the view out of (nested) pure functions $v=f(s)$ which take a global state value and return a description of what to render. Each component function specifies what slice of the state it needs, recursively composes smaller components, and is automatically re-run when the state changes.
 
 Apart from web development, \cite{salvaneschi2013towards} gives an overview of the literature on the more general \gls{DRP} paradigm.
+
+
+\cleardoublepage
+\paragraph{Distributing state.} The complexity of state within a single program pales in comparison to the challenges faced when distributing said state over the network. The fundamental impossibility of simultaneously honoring all three guarantees of Brewer's conjecture: consistency, availability, and partition-tolerance (CAP) \cite{brewer2000towards} later proven by \cite{gilbert2002brewer} implies -- in the case of a network partition, because networks can and will fail (with partition being a particularly nasty failure) -- write or read semantics to be either "pessimistic" yet safe and consistent (but blocked until the partition is healed) yielding CP semantics, or "optimistic" yet possibly resulting in inconsistencies that, in the case of writes, need to be reconciled later (but remaining available for reads and/or writes) resulting in AP behavior. A real-world network is asynchronous, thus even in case of no partitions, there exists a tradeoff between latency and availability, as captured by Abadi's PACELC \cite{abadi2012consistency} formulation: In case of partitions, choose between availability and consistency, else -- meaning during normal operation -- trade between latency and consistency. Note that these tradeoffs do not globally apply to the system as a whole, but are to be separately decided for each data item and each type of action.
+
+This work argues in favor of a more fine-grained and far-reaching distribution of state throughout the layers of a distributed application, particularly towards clients keeping a queryable slice of the state in memory, somewhat similar to \cite{jungnickel2018feasibility} but lacks the strong guarantees of convergence as provided by e.g. Conflict-free replicated data types (CRDTs), yet at least brings auditable structured bitemporal history of all changes.

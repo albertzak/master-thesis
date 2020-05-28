@@ -2,8 +2,16 @@
 
 The following subsections describe the implementation of the design explained in the previous section. The conceptual data model from section~\ref{sec:conceptual_model} is translated to Clojure in section~\ref{sec:impl_datamodel}. Next, a guided tour follows the \emph{data path} from a new fact originating on a client all the way through the server and to the other clients, showing and explaining the simple functions that transform it along the way.
 
+
+\begin{figure}[!ht]
+  \includegraphics[width=\linewidth]{images/namespaces.pdf}
+  \caption{Structure of namespaces}
+  \label{fig:namespaces}
+\end{figure}
+
+
 \paragraph{Functional core, stateful shell.}
-While Clojure does not enforce functional purity, it is idiomatic to push impure computation and state towards the edge of the system. In fact, core functionality described in the next subsection is implemented as pure functions operating on plain immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients. Clients and server obviously need to keep some state, but each does so within one single place only. Three pure namespaces make up the functional core of the system:
+While Clojure does not enforce functional purity, it is idiomatic to push impure computation and state towards the edge of the system. In fact, core functionality described in the next subsection is implemented as pure functions operating on plain immutable data structures. Such purity allows the same core of the database to run unmodified on servers and on clients. Clients and server obviously need to keep some state, but each does so within one single place only. Three pure namespaces (figure~\ref{fig:namespaces}) make up the functional core of the system:
 
 \begin{enumerate}[label={(\roman*)}]
   \item \lisp{core} implementing the basic pure functions and data structures to create and transact facts,
@@ -74,13 +82,24 @@ The implementation relies heavily on the lazy immutable default data structures 
           v {a {e txe}} ...}}}
 \end{lstlisting}
 
-\item Finally, the \emph{database} (db) is a map containing the log list and the index map.
+\item Finally, the \emph{database} (db) is a map containing the log list and the index map (figure~\ref{fig:dbvalue}).
 
 \begin{center}
   \lisp{\{:log '() :index \{\}\}}
 \end{center}
 
 \end{itemize}
+
+
+
+
+\begin{figure}[!ht]
+  \includegraphics[width=\linewidth]{images/dbvalue.pdf}
+  \caption{The database is a value containing the log and the indices}
+  \label{fig:dbvalue}
+\end{figure}
+
+
 
 \paragraph{Commits do not mutate the database.}
 Note that a commit itself has no notion of place or state, and does not mutate anything, it only signifies that a transaction was successfully applied to \emph{some} database value \emph{somewhere}. A commit \emph{may} mean that the server has successfully updated its state and broadcast the commit to all connected clients, or, since the database value is immutable, it may just be the result of any local \emph{"as-if"} dry run.
@@ -141,7 +160,7 @@ The pure function \lisp{(transact db transaction txe now)} takes a database valu
 
     \item \lisp{(map #(conj \% txe) transaction)}: Conjoins the \lisp{txe} value as the last element of each transition in the amended transaction vector returned from the previous step.
 
-    \item \lisp{(derive-transitions transaction db txe now)} Some previously added facts in the database may be of a special attribute which indicates that the value is a \emph{derivation function}. These functions receive a pending database value and may return additional assertions or retractions, for example to keep a phonetic index on people's names updated. The behavior of \lisp{derive-transitions} is described later.
+    \item \lisp{(derive-transitions transaction db txe now)} Some previously asserted facts in the database may be of a special attribute which indicates that the value is a \emph{derivation function}. These functions receive a pending database value and may return additional assertions or retractions, for example to keep a phonetic index on people's names updated. The behavior of \lisp{derive-transitions} is described later.
 
     \item \lisp{(validate db)} Finally, the pending commit is applied to a new database, and its installed constraint functions are checked. The behavior of \lisp{validate} is described later.
   \end{itemize}
@@ -259,11 +278,13 @@ The original macro implementation of the query engine by \cite{rubin15aosadb} ad
 
     ; Binary operator, lvar is first operand: [> ?age 18]
     (and (vector? term)
+         (= 3 (count term))
          (lvar? (second term)))
     ($\lambda$ [t] ((first term) t (last term)))
 
     ; Binary operator, lvar is last operand: [< 18 ?age]
     (and (vector? term)
+         (= 3 (count term))
          (lvar? (last term)))
     ($\lambda$ [t] ((first term) (second term) t))
 
@@ -320,6 +341,15 @@ Clients may choose to amend their subscription query at any later point in time 
 \end{center}
 
 The return value of the publication function is either \lisp{nil} to take no action when the client's subscription is not affected by the latest commit, \lisp{[:commit commit]} to command the client to commit the commit, possibly modified, or, as a last resort if e.g. the query has changed substantially and no diff can reasonably be deduced, the publication function can return \lisp{[:reset log]} to instruct the client to start anew and swap its value to a completely new database created from the attached log. Note that the server never sends index structures over the wire because clients can trivially regenerate them.
+
+
+\begin{figure}[!ht]
+  \includegraphics[width=\linewidth]{images/pubsub.pdf}
+  \caption{Sequence diagram of subscription, transaction, and publication}
+  \label{fig:pubsub}
+\end{figure}
+
+
 
 \paragraph{Nontrivial publications.}
 The publication function may also modify facts, e.g. censor some values matching sensitive attributes or choose to not publish facts matching some pattern. As a consequence of the simplistic notification mechanism, the server may send more or less, or different facts than the client asked for. While the body of the publication function can be trivial and always return the latest commit regardless of query, developers building larger systems will likely need to put a lot of effort into writing an efficient, secure, and correct publication function. The simplistic design of the publication/subscription mechanism appears to be the weakest point of the presented data layer, as it only shifts to the developer almost all of the complexity related to efficiently distributing and diffing results from changed queries.

@@ -5,7 +5,7 @@ Traditional RDBMSs enforce a structural rigidity of fitting data into "tables", 
 
 \paragraph{\gls{SQL}.}
 Despite the widespread use of SQL, it is not, in any version, an accurate reflection of the relational model \cite{codd1990relational} \cite{tarpit}.
-Modeling domains in common \gls{RDBMS} requires distinguishing between entity and relationship \cite{chen1976entity}. A system in which choosing the structure for the data involves setting up "routes" between data instances (such as from a particular employee to a particular department) is access path dependent. A pure relational systems would need no problematic distinction between entity and relationship \cite{tarpit}.
+Modeling domains in common \gls{RDBMS} requires distinguishing between entity and relationship \cite{chen1976entity}. Access path dependence requires an upfront decision about the "routes" between data, such as from a particular room to a particular building. A pure relational systems would need no problematic distinction between entity and relationship \cite{tarpit}.
 
 SQL within the application's main programming language is usually treated as a second class citizen by resorting to concatenation of strings with a thin layer of sanitization. (Microsoft's LINQ \cite{meijer2006linq} is a notable exception.) Features such as materialized views are cumbersome to use because the language lacks powerful means of abstraction and composition \cite{sicp} which would enable recursively composing complex queries out of smaller queries.
 
