@@ -25,7 +25,7 @@ The following two subsections qualitatively review the contribution with respect
 
 \paragraph{Query engine.} No negation, no aggregations, no pull, no multi-way joins, no destructuring -- the minimalist implementation of the query language presented in this thesis does not even deserve comparison to a proper Datalog.
 
-\paragraph{No schema.} Determining if fact was superseded needs upfront specification of cardinality. A production system would need to define a schema and at least enforce cardinalities on each attribute, i.e. the number of values that can be considered "current" for an attribute, e.g. that a person can have \emph{many} phone numbers but only \emph{one} birthdate.
+\paragraph{No schema.} Determining if fact was superseded needs upfront specification of cardinality. A production system would need to define a schema and at least enforce cardinalities on each attribute, i.e., the number of values that can be considered "current" for an attribute, e.g. that a person can have \emph{many} phone numbers but only \emph{one} birthdate.
 
 \paragraph{Coupled storage.} The design of the storage layer makes no provisions for offloading responsibilities to a generic storage backend or even durable persistence via local disks.
 

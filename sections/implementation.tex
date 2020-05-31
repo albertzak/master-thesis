@@ -143,7 +143,7 @@ When such a transaction message is received, the server applies the transaction 
 
 \paragraph{ACID transactions.}
 Thanks to Clojure's immutable data structures, implementing transactions that respect \gls{ACID} guarantees is almost trivial.
-The pure function \lisp{(transact db transaction txe now)} takes a database value, a transaction vector, a new unique entity \lisp{txe} and the current time which is to be used as transaction time $t_x$. The \lisp{txe} value is usually either a globally incrementing number or a randomly generated string like a \gls{UUID} version 4. It is up to the impure calling code on the server to generate and supply these two values. The \lisp{transact} function returns a \emph{new} database value with the transaction committed, i.e. appended to the log and with the indices updated. Transacting is a nested multi-step process:
+The pure function \lisp{(transact db transaction txe now)} takes a database value, a transaction vector, a new unique entity \lisp{txe} and the current time which is to be used as transaction time $t_x$. The \lisp{txe} value is usually either a globally incrementing number or a randomly generated string like a \gls{UUID} version 4. It is up to the impure calling code on the server to generate and supply these two values. The \lisp{transact} function returns a \emph{new} database value with the transaction committed, i.e., appended to the log and with the indices updated. Transacting is a nested multi-step process:
 
 \begin{itemize}
   \item \lisp{commit}: Generates another data structure which describes the commit about to happen. The same arguments as to \lisp{transact} are passed along, resulting in the commit data structure depicted in listing~\ref{lst:commit_example}:
@@ -297,7 +297,7 @@ The original macro implementation of the query engine by \cite{rubin15aosadb} ad
 
 \cleardoublepage
 \paragraph{Step 3: Decide index to use.}
-The query clauses are now parsed into a sieve which is ready to be evaluated over an index. Descending an index means successively going from knowledge to answer, i.e. evaluation needs to start with an index which has as its top level value one of the constants provided in the query. In other words, the lvar that appears at the same position within each query clause is the \emph{joining variable}. The index which to descend is the one that keeps this joining variable at its leaves \cite{rubin15aosadb}. This is a design limitation, as a full query language should support arbitrary transitive joins, leveraging multiple indices. Refer to table \ref{tbl:lvartoindex} for clarification.
+The query clauses are now parsed into a sieve which is ready to be evaluated over an index. Descending an index means successively going from knowledge to answer, i.e., evaluation needs to start with an index which has as its top level value one of the constants provided in the query. In other words, the lvar that appears at the same position within each query clause is the \emph{joining variable}. The index which to descend is the one that keeps this joining variable at its leaves \cite{rubin15aosadb}. This is a design limitation, as a full query language should support arbitrary transitive joins, leveraging multiple indices. Refer to table \ref{tbl:lvartoindex} for clarification.
 
 \begin{table}
   \caption{Mapping of joining variable position to query index, slightly adapted from \cite{rubin15aosadb}}
